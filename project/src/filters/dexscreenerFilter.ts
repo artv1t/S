@@ -17,6 +17,7 @@ export class DexScreenerFilter {
 
   constructor() {
     this.dexscreenerAPI = new DexScreenerAPI();
+    this.startPeriodicCacheCleanup();
   }
 
   async execute(mintAddress: string): Promise<FilterResult> {
@@ -257,16 +258,27 @@ export class DexScreenerFilter {
       result,
       expires: Date.now() + ttl
     });
+  }
 
-    // Cleanup old cache entries
-    if (this.cache.size > 2000) {
+  /**
+   * Start periodic cache cleanup to prevent memory bloat
+   */
+  private startPeriodicCacheCleanup(): void {
+    setInterval(() => {
       const now = Date.now();
+      let cleanedCount = 0;
+      
       for (const [key, value] of this.cache.entries()) {
         if (value.expires < now) {
           this.cache.delete(key);
+          cleanedCount++;
         }
       }
-    }
+      
+      if (cleanedCount > 0) {
+        console.debug(`DexScreenerFilter: Cleaned ${cleanedCount} expired cache entries, current size: ${this.cache.size}`);
+      }
+    }, 60000); // Run every 60 seconds (longer TTL than RouteGate)
   }
 
   /**

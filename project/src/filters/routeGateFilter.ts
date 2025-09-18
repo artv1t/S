@@ -14,6 +14,10 @@ export class RouteGateFilter {
   private readonly TIMEOUT = 3000; // 3 second timeout
   private readonly JUPITER_API_URL = 'https://quote-api.jup.ag/v6/quote';
 
+  constructor() {
+    this.startPeriodicCacheCleanup();
+  }
+
   async execute(mintAddress: string): Promise<FilterResult> {
     // Check cache first for performance
     const cached = this.cache.get(mintAddress);
@@ -160,16 +164,27 @@ export class RouteGateFilter {
       result,
       expires: Date.now() + ttl
     });
+  }
 
-    // Cleanup old cache entries periodically
-    if (this.cache.size > 5000) {
+  /**
+   * Start periodic cache cleanup to prevent memory bloat
+   */
+  private startPeriodicCacheCleanup(): void {
+    setInterval(() => {
       const now = Date.now();
+      let cleanedCount = 0;
+      
       for (const [key, value] of this.cache.entries()) {
         if (value.expires < now) {
           this.cache.delete(key);
+          cleanedCount++;
         }
       }
-    }
+      
+      if (cleanedCount > 0) {
+        console.debug(`RouteGateFilter: Cleaned ${cleanedCount} expired cache entries, current size: ${this.cache.size}`);
+      }
+    }, 30000); // Run every 30 seconds
   }
 
   /**
