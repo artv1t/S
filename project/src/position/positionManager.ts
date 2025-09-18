@@ -355,8 +355,11 @@ export class PositionManager {
     const activePositions = this.getActivePositions();
     const currentExposure = this.getCurrentExposure();
     
-    return activePositions.length < config.maxPositions && 
-           currentExposure + (config.quoteAmount * 1000) <= config.maxExposure; // Rough estimate
+    const estimatedNewExposure = currentExposure + (config.quoteAmount * 100);
+    const hasPositionCapacity = activePositions.length < config.maxPositions;
+    const hasExposureCapacity = estimatedNewExposure < (config.maxExposure * 0.9);
+    
+    return hasPositionCapacity && hasExposureCapacity;
   }
 
   /**

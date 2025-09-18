@@ -21,13 +21,13 @@ export const config: Config = {
   rpcBatchSize: parseInt(process.env.RPC_BATCH_SIZE || '50'),
   rpcKeepAlive: process.env.RPC_KEEP_ALIVE === 'true',
   
-  // Performance Settings
-  maxConcurrentTrades: parseInt(process.env.MAX_CONCURRENT_TRADES || '25'),
-  maxConcurrentFilters: parseInt(process.env.MAX_CONCURRENT_FILTERS || '50'),
-  maxPositions: parseInt(process.env.MAX_POSITIONS || '100'),
-  workerThreads: parseInt(process.env.WORKER_THREADS || '4'),
-  memoryLimit: parseInt(process.env.MEMORY_LIMIT || '2048'),
-  cpuLimit: parseInt(process.env.CPU_LIMIT || '80'),
+  // CONSERVATIVE Performance Settings
+  maxConcurrentTrades: parseInt(process.env.MAX_CONCURRENT_TRADES || '5'), // Conservative: 5 max
+  maxConcurrentFilters: parseInt(process.env.MAX_CONCURRENT_FILTERS || '10'), // Reduced load
+  maxPositions: parseInt(process.env.MAX_POSITIONS || '5'), // Conservative: 5 max positions
+  workerThreads: parseInt(process.env.WORKER_THREADS || '2'), // Reduced for stability
+  memoryLimit: parseInt(process.env.MEMORY_LIMIT || '1024'), // Conservative memory
+  cpuLimit: parseInt(process.env.CPU_LIMIT || '60'), // Conservative CPU usage
   
   // Rate Limiting
   jupiterRateLimit: parseInt(process.env.JUPITER_RATE_LIMIT || '50'),
@@ -40,23 +40,22 @@ export const config: Config = {
   cacheTtlPrice: parseInt(process.env.CACHE_TTL_PRICE || '30'),
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   
-  // Trading Configuration
-  quoteAmount: parseFloat(process.env.QUOTE_AMOUNT || '0.0001'),
-  slippageLimit: parseFloat(process.env.SLIPPAGE_LIMIT || '15'),
-  maxSlippage: parseFloat(process.env.MAX_SLIPPAGE || '50'),
-  takeProfit: parseFloat(process.env.TAKE_PROFIT || '50'),
-  stopLoss: parseFloat(process.env.STOP_LOSS || '30'),
-  ttlMinutes: parseInt(process.env.TTL_MINUTES || '30'),
+  // CONSERVATIVE Trading Configuration
+  quoteAmount: parseFloat(process.env.QUOTE_AMOUNT || '0.00001'), // MINIMAL: 0.00001 SOL
+  slippageLimit: parseFloat(process.env.SLIPPAGE_LIMIT || '10'), // Conservative slippage
+  maxSlippage: parseFloat(process.env.MAX_SLIPPAGE || '15'), // Lower max slippage
+  takeProfit: parseFloat(process.env.TAKE_PROFIT || '50'), // 50% take profit
+  stopLoss: parseFloat(process.env.STOP_LOSS || '25'), // 25% stop loss
+  ttlMinutes: parseInt(process.env.TTL_MINUTES || '3'), // Shorter TTL: 3 minutes
   
-  // Filters - МЯГКИЕ НАСТРОЙКИ ДЛЯ ТЕСТИРОВАНИЯ
-  enableRouteGate: process.env.ENABLE_ROUTE_GATE === 'true',
-  enableOnChain: process.env.ENABLE_ON_CHAIN === 'true',
-  enableDexScreener: process.env.ENABLE_DEXSCREENER === 'true',
-  riskThreshold: parseInt(process.env.RISK_THRESHOLD || '30'), // Снижено с 70 до 30
+  // CONSERVATIVE Filters - ALL ENABLED FOR SAFETY
+  enableRouteGate: process.env.ENABLE_ROUTE_GATE !== 'false', // Default enabled
+  enableOnChain: process.env.ENABLE_ON_CHAIN !== 'false', // Default enabled  
+  enableDexScreener: process.env.ENABLE_DEXSCREENER !== 'false', // Default enabled
+  riskThreshold: parseInt(process.env.RISK_THRESHOLD || '70'), // Conservative: High risk threshold
   filterTimeout: parseInt(process.env.FILTER_TIMEOUT || '10000'), // Увеличено до 10 сек
   
-  // Paper Mode
-  paperMode: process.env.PAPER_MODE === 'true',
+  paperMode: process.env.PAPER_MODE === 'true' ? true : false, // Default to real trading
   testMode: process.env.TEST_MODE === 'true',
   dryRun: process.env.DRY_RUN === 'true',
   
@@ -73,7 +72,7 @@ export const config: Config = {
   // API Configuration
   apiPort: parseInt(process.env.API_PORT || '3001'),
   apiHost: process.env.API_HOST || 'localhost',
-  enableApi: process.env.ENABLE_API === 'true',
+  enableApi: process.env.ENABLE_API !== 'false', // Default enabled for monitoring
   corsOrigin: process.env.CORS_ORIGIN || '*',
   
   // Database
@@ -86,18 +85,16 @@ export const config: Config = {
   discordWebhookUrl: process.env.DISCORD_WEBHOOK_URL || '',
   enableNotifications: process.env.ENABLE_NOTIFICATIONS === 'true',
   
-  // Security
-  circuitBreakerMaxFailures: parseInt(process.env.CIRCUIT_BREAKER_MAX_FAILURES || '10'),
-  dailyLossLimit: parseFloat(process.env.DAILY_LOSS_LIMIT || '0.05'),
-  maxExposure: parseFloat(process.env.MAX_EXPOSURE || '0.2'),
-  reserveSol: parseFloat(process.env.RESERVE_SOL || '0.01'),
+  circuitBreakerMaxFailures: parseInt(process.env.CIRCUIT_BREAKER_MAX_FAILURES || '5'), // Conservative: 5 failures
+  dailyLossLimit: parseFloat(process.env.DAILY_LOSS_LIMIT || '0.01'), // MINIMAL: 0.01 SOL daily loss
+  maxExposure: parseFloat(process.env.MAX_EXPOSURE || '0.05'), // MINIMAL: 0.05 SOL max exposure
+  reserveSol: parseFloat(process.env.RESERVE_SOL || '0.005'), // MINIMAL: 0.005 SOL reserve
   
-  // Filter specific settings - МЯГКИЕ НАСТРОЙКИ
-  maxPriceImpact: parseFloat(process.env.MAX_PRICE_IMPACT || '50'), // Увеличено с 15 до 50
-  minPoolSize: parseFloat(process.env.MIN_POOL_SIZE || '0.1'), // Снижено с 1 до 0.1
-  maxPoolSize: parseFloat(process.env.MAX_POOL_SIZE || '1000'), // Увеличено с 100 до 1000
-  maxTop1HolderPercent: parseFloat(process.env.MAX_TOP1_HOLDER_PERCENT || '80'), // Увеличено с 20 до 80
-  maxTop5HolderPercent: parseFloat(process.env.MAX_TOP5_HOLDER_PERCENT || '95'), // Увеличено с 50 до 95
+  maxPriceImpact: parseFloat(process.env.MAX_PRICE_IMPACT || '10'), // Conservative: Max 10% price impact
+  minPoolSize: parseFloat(process.env.MIN_POOL_SIZE || '1.0'), // Conservative: Minimum 1 SOL pool
+  maxPoolSize: parseFloat(process.env.MAX_POOL_SIZE || '100'), // Conservative pool size limit
+  maxTop1HolderPercent: parseFloat(process.env.MAX_TOP1_HOLDER_PERCENT || '20'), // Conservative: Max 20% concentration
+  maxTop5HolderPercent: parseFloat(process.env.MAX_TOP5_HOLDER_PERCENT || '50'), // Conservative: Max 50% top 5
   
   // Program IDs
   programIds: {
