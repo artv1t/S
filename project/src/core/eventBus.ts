@@ -1,6 +1,9 @@
 import { EventEmitter } from 'events';
 import { TokenEvent, TradeEvent, FilterResult, PerformanceMetrics } from '../types/index.js';
 import { logDetectedPool, logPerformanceMetric } from '../utils/logger.js';
+import { tradingLogger } from '../logging/tradingLogger.js';
+import { realTimeMonitor } from '../monitoring/realTimeMonitor.js';
+import { sessionLogger } from '../logging/sessionLogger.js';
 
 /**
  * High-performance event bus for processing 1000+ events/sec
@@ -39,6 +42,12 @@ export class EventBus extends EventEmitter {
    */
   emitTokenEvent(event: TokenEvent): void {
     this.incrementCounter('token_detected');
+    
+    realTimeMonitor.tokenDiscovered(event.mintAddress);
+    
+    sessionLogger.updateFilterStats({
+      tokensDiscovered: (sessionLogger.getCurrentSession()?.filterStats.tokensDiscovered || 0) + 1
+    });
     
     if (this.ENABLE_BATCH_PROCESSING) {
       // Add to batch buffer for high-throughput processing
@@ -91,6 +100,30 @@ export class EventBus extends EventEmitter {
    */
   emitFilterResult(mintAddress: string, result: FilterResult): void {
     this.incrementCounter(`filter_${result.filterName.toLowerCase()}`);
+    
+    const currentSession = sessionLogger.getCurrentSession();
+    if (currentSession) {
+      const stats = currentSession.filterStats;
+      stats.tokensFiltered++;
+      
+      if (result.ok) {
+        switch (result.filterName.toLowerCase()) {
+          case 'routegate':
+            stats.routeGatePassed++;
+            break;
+          case 'onchain':
+            stats.onChainPassed++;
+            break;
+          case 'dexscreener':
+            stats.dexScreenerPassed++;
+            break;
+        }
+        stats.totalPassed++;
+      }
+      
+      sessionLogger.updateFilterStats(stats);
+    }
+    
     this.emit('filter_result', { mintAddress, result });
   }
 
@@ -99,6 +132,24 @@ export class EventBus extends EventEmitter {
    */
   emitTradeEvent(event: TradeEvent): void {
     this.incrementCounter(`trade_${event.type.toLowerCase()}`);
+    
+    if (event.success) {
+      tradingLogger.logTrade({
+        timestamp: new Date().toISOString(),
+        mintAddress: event.mintAddress,
+        action: event.type.toUpperCase() as 'BUY' | 'SELL' | 'STOP_LOSS' | 'TAKE_PROFIT',
+        amount: event.amount,
+        price: event.price,
+        solAmount: event.type === 'buy' ? event.amount * event.price : event.amount,
+        txHash: event.signature,
+        reason: event.reason,
+        pnl: event.pnl,
+        pnlPercent: event.pnl && event.type === 'sell' ? (event.pnl / (event.amount * event.price)) * 100 : undefined
+      });
+      
+      realTimeMonitor.tradeExecuted(event.mintAddress, event.type.toUpperCase(), event.pnl);
+    }
+    
     this.emit('trade_event', event);
   }
 

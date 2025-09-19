@@ -6,6 +6,8 @@ import { RPCManager } from '../rpc/rpcManager.js';
 import { config } from '../config/index.js';
 import { EventBus } from '../core/eventBus.js';
 import { logSkipFilter } from '../utils/logger.js';
+import { tradingLogger } from '../logging/tradingLogger.js';
+import { realTimeMonitor } from '../monitoring/realTimeMonitor.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -69,6 +71,18 @@ export class FilterPipeline {
         results.push(routeGateResult);
         this.eventBus.emitFilterResult(mintAddress, routeGateResult);
         
+        tradingLogger.logFilterResult({
+          timestamp: new Date().toISOString(),
+          mintAddress,
+          filterName: 'routeGate',
+          passed: routeGateResult.ok,
+          score: routeGateResult.score,
+          latency: routeGateResult.latency,
+          reason: routeGateResult.reason || 'No reason provided',
+          cacheHit: false
+        });
+        realTimeMonitor.tokenFiltered(mintAddress, routeGateResult.ok);
+        
         // EARLY EXIT: If Route Gate fails, don't waste time on other filters
         if (!routeGateResult.ok) {
           logSkipFilter('RouteGate', mintAddress, routeGateResult.reason || 'Failed', routeGateResult.score);
@@ -89,6 +103,18 @@ export class FilterPipeline {
         
         results.push(onChainResult);
         this.eventBus.emitFilterResult(mintAddress, onChainResult);
+        
+        tradingLogger.logFilterResult({
+          timestamp: new Date().toISOString(),
+          mintAddress,
+          filterName: 'onChain',
+          passed: onChainResult.ok,
+          score: onChainResult.score,
+          latency: onChainResult.latency,
+          reason: onChainResult.reason || 'No reason provided',
+          cacheHit: false
+        });
+        realTimeMonitor.tokenFiltered(mintAddress, onChainResult.ok);
         
         // EARLY EXIT: If On-Chain fails, don't call DexScreener
         if (!onChainResult.ok) {
@@ -111,6 +137,18 @@ export class FilterPipeline {
         
         results.push(dexScreenerResult);
         this.eventBus.emitFilterResult(mintAddress, dexScreenerResult);
+        
+        tradingLogger.logFilterResult({
+          timestamp: new Date().toISOString(),
+          mintAddress,
+          filterName: 'dexScreener',
+          passed: dexScreenerResult.ok,
+          score: dexScreenerResult.score,
+          latency: dexScreenerResult.latency,
+          reason: dexScreenerResult.reason || 'No reason provided',
+          cacheHit: false
+        });
+        realTimeMonitor.tokenFiltered(mintAddress, dexScreenerResult.ok);
         
         if (!dexScreenerResult.ok) {
           logSkipFilter('DexScreener', mintAddress, dexScreenerResult.reason || 'Failed', dexScreenerResult.score);

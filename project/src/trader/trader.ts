@@ -6,6 +6,9 @@ import { PaperEngine } from '../paper/paperEngine.js';
 import { TradeEvent } from '../types/index.js';
 import { config } from '../config/index.js';
 import { logBuySuccess, logBuyError } from '../utils/logger.js';
+import { tradingLogger } from '../logging/tradingLogger.js';
+import { realTimeMonitor } from '../monitoring/realTimeMonitor.js';
+import { sessionLogger } from '../logging/sessionLogger.js';
 import logger from '../utils/logger.js';
 import { jupiterService } from '../services/jupiterService.js';
 
@@ -93,6 +96,28 @@ export class Trader {
         const swapResult = await this.executeSwapTransaction(swapTransaction, quoteAmount, 'buy');
         
         logBuySuccess(mintAddress, swapResult.amount, swapResult.price, swapResult.signature);
+
+        tradingLogger.logTrade({
+          timestamp: new Date().toISOString(),
+          mintAddress,
+          action: 'BUY',
+          amount: swapResult.amount,
+          price: swapResult.price,
+          solAmount: quoteAmount,
+          txHash: swapResult.signature
+        });
+        realTimeMonitor.tradeExecuted(mintAddress, 'BUY');
+
+        const currentBalance = await this.getCurrentBalance();
+        sessionLogger.logTrade({
+          timestamp: new Date().toISOString(),
+          mintAddress,
+          action: 'BUY',
+          amount: swapResult.amount,
+          price: swapResult.price,
+          solAmount: quoteAmount,
+          txHash: swapResult.signature
+        }, currentBalance);
 
         const tradeEvent: TradeEvent = {
           type: 'buy',
@@ -195,6 +220,33 @@ export class Trader {
         const swapResult = await this.executeSwapTransaction(swapTransaction, amount, 'sell');
         
         logger.info(`💰 LIVE SELL: ${mintAddress} | Amount: ${swapResult.amount.toFixed(6)} SOL | Price: ${swapResult.price.toFixed(8)} | Reason: ${reason} | TX: ${swapResult.signature}`);
+
+        tradingLogger.logTrade({
+          timestamp: new Date().toISOString(),
+          mintAddress,
+          action: reason === 'take_profit' ? 'TAKE_PROFIT' : 
+                  reason === 'stop_loss' ? 'STOP_LOSS' : 'SELL',
+          amount: swapResult.amount,
+          price: swapResult.price,
+          solAmount: swapResult.amount,
+          txHash: swapResult.signature,
+          reason
+        });
+        realTimeMonitor.tradeExecuted(mintAddress, reason?.toUpperCase() || 'SELL');
+
+        const currentBalance = await this.getCurrentBalance();
+        sessionLogger.logTrade({
+          timestamp: new Date().toISOString(),
+          mintAddress,
+          action: reason === 'take_profit' ? 'TAKE_PROFIT' : 
+                  reason === 'stop_loss' ? 'STOP_LOSS' : 
+                  reason === 'auto_sell' ? 'AUTO_SELL' : 'SELL',
+          amount: swapResult.amount,
+          price: swapResult.price,
+          solAmount: swapResult.amount,
+          txHash: swapResult.signature,
+          reason
+        }, currentBalance);
 
         const tradeEvent: TradeEvent = {
           type: 'sell',
@@ -309,6 +361,36 @@ export class Trader {
       utilizationPercent: Math.round((this.activeTrades / config.maxConcurrentTrades) * 100),
       paperMode: config.paperMode
     };
+  }
+
+  /**
+   * Get current wallet balance for session tracking
+   */
+  private async getCurrentBalance(): Promise<number> {
+    try {
+      const wallet = this.walletManager.getPrimaryWallet();
+      if (!wallet) {
+        return 0;
+      }
+
+      const connection = this._rpcManager.getHealthyConnection();
+      if (!connection) {
+        return 0;
+      }
+
+      const balance = await connection.getBalance(wallet.publicKey);
+      return balance / 1e9; // Convert lamports to SOL
+    } catch (error) {
+      logger.error('Error getting current balance:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Check if we can make a new trade
+   */
+  canTrade(): boolean {
+    return this.activeTrades < config.maxPositions;
   }
 
   /**

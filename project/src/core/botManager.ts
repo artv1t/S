@@ -9,6 +9,8 @@ import { EventBus } from './eventBus.js';
 import { BotStatus, CircuitBreakerState, TokenEvent } from '../types/index.js';
 import { config } from '../config/index.js';
 import { logCircuitBreaker } from '../utils/logger.js';
+import { realTimeMonitor } from '../monitoring/realTimeMonitor.js';
+import { sessionLogger } from '../logging/sessionLogger.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -217,7 +219,13 @@ export class BotManager {
     this.circuitBreaker.active = false;
     this.circuitBreaker.failureCount = 0;
     
+    const startingBalance = await this.getWalletBalance();
+    sessionLogger.startSession(startingBalance);
+    
     await this.tokenDetector.start();
+    
+    // Start real-time monitoring
+    realTimeMonitor.start();
     
     logger.info({
       code: 'BOT_STARTED',
@@ -225,7 +233,8 @@ export class BotManager {
       timestamp: this.startTime,
       maxPositions: config.maxPositions,
       maxConcurrentTrades: config.maxConcurrentTrades,
-      quoteAmount: config.quoteAmount
+      quoteAmount: config.quoteAmount,
+      startingBalance
     });
   }
 
@@ -236,12 +245,22 @@ export class BotManager {
     if (!this.isRunning) return;
     
     this.isRunning = false;
+    
+    await this.autoSellAllPositions();
+    
     await this.tokenDetector.stop();
+    
+    // Stop real-time monitoring
+    realTimeMonitor.stop();
+    
+    const endingBalance = await this.getWalletBalance();
+    sessionLogger.finalizeSession(endingBalance);
     
     logger.info({
       code: 'BOT_STOPPED',
       timestamp: Date.now(),
-      uptime: Date.now() - this.startTime
+      uptime: Date.now() - this.startTime,
+      endingBalance
     });
   }
 
@@ -425,6 +444,55 @@ export class BotManager {
    */
   getHealthMonitor(): HealthMonitor {
     return this.healthMonitor;
+  }
+
+  /**
+   * Auto-sell all open positions when bot stops
+   */
+  private async autoSellAllPositions(): Promise<void> {
+    const activePositions = this.positionManager.getActivePositions();
+    
+    if (activePositions.length === 0) {
+      logger.info('🔄 No active positions to auto-sell');
+      return;
+    }
+
+    logger.info(`🔄 Auto-selling ${activePositions.length} open positions...`);
+    
+    for (const position of activePositions) {
+      try {
+        sessionLogger.logPositionAtShutdown(position.mintAddress);
+        await this.trader.sell(position.mintAddress, position.buyAmount, 'auto_sell');
+        logger.info(`✅ Auto-sold position: ${position.mintAddress}`);
+      } catch (error) {
+        logger.error(`❌ Failed to auto-sell position ${position.mintAddress}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Get wallet balance for session tracking
+   */
+  private async getWalletBalance(): Promise<number> {
+    try {
+      const wallet = this.walletManager.getPrimaryWallet();
+      if (!wallet) {
+        logger.warn('No primary wallet available for balance check');
+        return 0;
+      }
+
+      const connection = this.rpcManager.getHealthyConnection();
+      if (!connection) {
+        logger.warn('No healthy RPC connection available for balance check');
+        return 0;
+      }
+
+      const balance = await connection.getBalance(wallet.publicKey);
+      return balance / 1e9; // Convert lamports to SOL
+    } catch (error) {
+      logger.error('Error getting wallet balance:', error);
+      return 0;
+    }
   }
 
   /**

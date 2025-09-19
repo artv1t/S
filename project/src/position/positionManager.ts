@@ -3,6 +3,9 @@ import { Trader } from '../trader/trader.js';
 import { Position, TradeEvent } from '../types/index.js';
 import { config } from '../config/index.js';
 import { logSellSuccess } from '../utils/logger.js';
+import { tradingLogger } from '../logging/tradingLogger.js';
+import { realTimeMonitor } from '../monitoring/realTimeMonitor.js';
+import { sessionLogger } from '../logging/sessionLogger.js';
 import logger from '../utils/logger.js';
 import Database from 'better-sqlite3';
 
@@ -149,6 +152,17 @@ export class PositionManager {
     this.positions.set(position.mintAddress, position);
     this.savePosition(position);
     
+    tradingLogger.logTrade({
+      timestamp: new Date().toISOString(),
+      mintAddress: position.mintAddress,
+      action: 'BUY',
+      amount: position.buyAmount,
+      price: position.buyPrice,
+      solAmount: position.buyAmount * position.buyPrice,
+      txHash: position.buySignature
+    });
+
+    
     logger.info(`➕ Position created: ${position.mintAddress} | Amount: ${position.buyAmount.toFixed(6)} | Price: ${position.buyPrice.toFixed(8)}`);
   }
 
@@ -180,6 +194,23 @@ export class PositionManager {
 
     this.savePosition(position);
     this.positions.delete(position.mintAddress); // Remove from active positions
+    
+    tradingLogger.logTrade({
+      timestamp: new Date().toISOString(),
+      mintAddress: position.mintAddress,
+      action: tradeEvent.reason === 'take_profit' ? 'TAKE_PROFIT' : 
+              tradeEvent.reason === 'stop_loss' ? 'STOP_LOSS' : 'SELL',
+      amount: tradeEvent.amount,
+      price: tradeEvent.price,
+      solAmount: tradeEvent.amount,
+      txHash: tradeEvent.signature,
+      reason: tradeEvent.reason,
+      pnl,
+      pnlPercent,
+      holdTime: Date.now() - position.buyTimestamp
+    });
+    realTimeMonitor.tradeExecuted(position.mintAddress, tradeEvent.reason?.toUpperCase() || 'SELL', pnl);
+
     
     logSellSuccess(position.mintAddress, tradeEvent.reason || 'manual', pnl, tradeEvent.signature);
     logger.info(`➖ Position closed: ${position.mintAddress} | PnL: ${pnl.toFixed(6)} SOL (${pnlPercent.toFixed(2)}%) | Reason: ${tradeEvent.reason}`);
