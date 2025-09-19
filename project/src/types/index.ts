@@ -27,6 +27,10 @@ export interface Config {
   jupiterApiKey: string;
   jupiterApiUrl: string;
   
+  enableRaydiumFallback: boolean;
+  maxTokensPerSecond: number;
+  skipDexScreenerWhenRateLimited: boolean;
+  
   // Caching
   cacheTtlMetadata: number;
   cacheTtlPool: number;

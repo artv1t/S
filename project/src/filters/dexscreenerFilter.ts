@@ -10,9 +10,9 @@ export class DexScreenerFilter {
   private dexscreenerAPI: DexScreenerAPI;
   private cache = new Map<string, { result: FilterResult; expires: number }>();
   private rateLimitWindow = new Map<number, number>();
-  private readonly RATE_LIMIT = 100; // 100 requests per second
+  private readonly RATE_LIMIT = 2; // Very conservative for free tier - 2 requests per second
   private readonly CACHE_TTL = 300000; // 5 minutes cache
-  private readonly TIMEOUT = 10000; // 10 second timeout
+  private readonly TIMEOUT = 5000; // Reduced timeout for faster failure
   private readonly DEXSCREENER_API_URL = 'https://api.dexscreener.com/latest/dex/tokens';
 
   constructor() {
@@ -77,6 +77,18 @@ export class DexScreenerFilter {
       return result;
 
     } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        const result: FilterResult = {
+          ok: false,
+          score: 0,
+          reason: 'DexScreener rate limited - skipping',
+          filterName: 'DexScreener',
+          latency: Date.now() - startTime
+        };
+        this.cacheResult(mintAddress, result, 60000); // Cache rate limit errors for 1 minute
+        return result;
+      }
+
       const result: FilterResult = {
         ok: false,
         score: 0,

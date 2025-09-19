@@ -1,7 +1,10 @@
 import axios, { AxiosInstance } from 'axios';
+import { createRequire } from 'module';
 import { config } from '../config/index.js';
 import { JupiterQuote } from '../types/index.js';
 import logger from '../utils/logger.js';
+
+const require = createRequire(import.meta.url);
 
 /**
  * Optimized Jupiter API Service with connection pooling and retry logic
@@ -59,6 +62,11 @@ export class JupiterService {
       onlyDirectRoutes?: boolean;
     } = {}
   ): Promise<JupiterQuote | null> {
+    if (!config.jupiterApiKey || config.jupiterApiKey.trim() === '') {
+      logger.debug(`Jupiter quote skipped for ${outputMint} - no API key (free tier mode)`);
+      return null;
+    }
+
     try {
       const response = await this.client.get('/quote', {
         params: {
@@ -85,6 +93,10 @@ export class JupiterService {
    * Get swap transaction for execution
    */
   async getSwapTransaction(quote: JupiterQuote, userPublicKey: string): Promise<any> {
+    if (!config.jupiterApiKey || config.jupiterApiKey.trim() === '') {
+      throw new Error('Jupiter swap requires API key - currently in free tier mode');
+    }
+
     try {
       const response = await this.client.post('/swap', {
         quoteResponse: quote,

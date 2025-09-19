@@ -29,13 +29,17 @@ export const config: Config = {
   cpuLimit: parseInt(process.env.CPU_LIMIT || '60'), // Conservative CPU usage
   
   // Rate Limiting
-  jupiterRateLimit: parseInt(process.env.JUPITER_RATE_LIMIT || '100'), // Increased from 50 to 100
+  jupiterRateLimit: parseInt(process.env.JUPITER_RATE_LIMIT || '1'), // Free tier: 60 req/min = 1 req/sec
   dexScreenerRateLimit: parseInt(process.env.DEXSCREENER_RATE_LIMIT || '100'),
   apiRateLimit: parseInt(process.env.API_RATE_LIMIT || '1000'),
   
   // Jupiter API Configuration
   jupiterApiKey: process.env.JUPITER_API_KEY || '', // Optional but improves rate limits
   jupiterApiUrl: process.env.JUPITER_API_URL || 'https://quote-api.jup.ag/v6',
+  
+  enableRaydiumFallback: process.env.ENABLE_RAYDIUM_FALLBACK !== 'false',
+  maxTokensPerSecond: parseInt(process.env.MAX_TOKENS_PER_SECOND || '2'),
+  skipDexScreenerWhenRateLimited: process.env.SKIP_DEXSCREENER_WHEN_RATE_LIMITED !== 'false',
   
   // Caching
   cacheTtlMetadata: parseInt(process.env.CACHE_TTL_METADATA || '300'),

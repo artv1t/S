@@ -28,9 +28,9 @@ export class DexScreenerAPI {
     cacheHits: 0,
     averageLatency: 0
   };
-  private readonly RATE_LIMIT = 100; // requests per second
+  private readonly RATE_LIMIT = 2; // Very conservative for free tier - 2 requests per second
   private readonly CACHE_TTL = 300000; // 5 minutes
-  private readonly TIMEOUT = 10000; // 10 seconds
+  private readonly TIMEOUT = 5000; // Reduced timeout for faster failure
   private readonly BASE_URL = 'https://api.dexscreener.com/latest/dex/tokens';
 
   constructor() {
@@ -55,6 +55,7 @@ export class DexScreenerAPI {
       // Rate limiting check
       if (this.isRateLimited()) {
         this.requestStats.failedRequests++;
+        logger.debug(`DexScreener rate limited for ${mintAddress} - skipping`);
         return null;
       }
 

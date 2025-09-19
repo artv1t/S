@@ -68,13 +68,18 @@ export class Trader {
           throw new Error('Insufficient wallet balance');
         }
 
-        // Get fresh quote from Jupiter
+        if (!config.jupiterApiKey) {
+          logger.info(`🚫 Skipping live trading for ${mintAddress} - no Jupiter API key (free tier mode)`);
+          throw new Error('Live trading requires Jupiter API key - currently in free tier mode');
+        }
+
+        // Get fresh quote from Jupiter (only if we have API key)
         const quote = await jupiterService.getQuote(
           'So11111111111111111111111111111111111111112', // SOL
           mintAddress,
           Math.floor(quoteAmount * 1e9) // Convert to lamports
         );
-        
+
         if (!quote) {
           throw new Error('No quote available');
         }
@@ -163,6 +168,11 @@ export class Trader {
         const tokenBalance = this.walletManager.getTokenBalance('primary', mintAddress);
         if (tokenBalance < amount) {
           throw new Error('Insufficient token balance');
+        }
+
+        if (!config.jupiterApiKey) {
+          logger.info(`🚫 Skipping live sell for ${mintAddress} - no Jupiter API key (free tier mode)`);
+          throw new Error('Live trading requires Jupiter API key - currently in free tier mode');
         }
 
         // Get fresh quote for selling (reverse direction)
