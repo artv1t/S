@@ -216,18 +216,24 @@ export class RouteGateFilter {
         totalRequests += this.rateLimitWindow.get(currentSecond - i) || 0;
       }
       
-      if (totalRequests >= 50) {
+      if (totalRequests >= 30) {
         return true;
       }
       
-      const lastFiveSeconds = (this.rateLimitWindow.get(currentSecond) || 0) + 
+      // Force 10 second gap between requests for free tier
+      const lastTenSeconds = (this.rateLimitWindow.get(currentSecond) || 0) + 
                              (this.rateLimitWindow.get(currentSecond - 1) || 0) +
                              (this.rateLimitWindow.get(currentSecond - 2) || 0) +
                              (this.rateLimitWindow.get(currentSecond - 3) || 0) +
-                             (this.rateLimitWindow.get(currentSecond - 4) || 0);
+                             (this.rateLimitWindow.get(currentSecond - 4) || 0) +
+                             (this.rateLimitWindow.get(currentSecond - 5) || 0) +
+                             (this.rateLimitWindow.get(currentSecond - 6) || 0) +
+                             (this.rateLimitWindow.get(currentSecond - 7) || 0) +
+                             (this.rateLimitWindow.get(currentSecond - 8) || 0) +
+                             (this.rateLimitWindow.get(currentSecond - 9) || 0);
       
-      if (lastFiveSeconds > 0) {
-        return true; // Force 5 second gap for free tier
+      if (lastTenSeconds > 0) {
+        return true; // Force 10 second gap for free tier
       }
     } else {
       let totalRequests = 0;
