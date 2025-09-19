@@ -1,0 +1,31 @@
+{
+  "sessionId": "session_1758297586167",
+  "sessionNumber": 1,
+  "startTime": "2025-09-19T15:59:46.167Z",
+  "startingBalance": 0,
+  "trades": [],
+  "filterStats": {
+    "tokensDiscovered": 11940,
+    "tokensFiltered": 5617,
+    "routeGatePassed": 1851,
+    "onChainPassed": 0,
+    "dexScreenerPassed": 0,
+    "totalPassed": 1851
+  },
+  "performanceMetrics": {
+    "peakTokensPerSecond": 0,
+    "averageTokensPerSecond": 0,
+    "memoryUsageMB": 0,
+    "rpcLatencyMs": 0,
+    "filterLatencyMs": 0
+  },
+  "successfulTrades": 0,
+  "failedTrades": 0,
+  "autoSellCount": 0,
+  "positionsAtShutdown": [],
+  "endTime": "2025-09-19T16:02:45.357Z",
+  "duration": 179190,
+  "endingBalance": 0,
+  "totalPnL": 0,
+  "totalPnLPercent": null
+}
