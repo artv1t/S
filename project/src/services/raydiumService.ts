@@ -10,9 +10,14 @@ export class RaydiumService {
   private connection: Connection;
   private requestCount = 0;
   private errorCount = 0;
+  private rateLimitWindow = new Map<number, number>();
+  private readonly RATE_LIMIT = 2; // Conservative rate limit - 2 requests per second
+  private cache = new Map<string, { result: any; expires: number }>();
+  private readonly CACHE_TTL = 300000; // 5 minutes cache
 
   constructor() {
     this.connection = new Connection(config.rpcEndpoints[0], 'confirmed');
+    this.startPeriodicCacheCleanup();
   }
 
   /**
@@ -102,6 +107,19 @@ export class RaydiumService {
     quoteVault: string;
   } | null> {
     try {
+      // Check cache first
+      const cacheKey = `raydium_pools_${mintAddress}`;
+      const cached = this.cache.get(cacheKey);
+      if (cached && cached.expires > Date.now()) {
+        return cached.result;
+      }
+
+      // Rate limiting check
+      if (this.isRateLimited()) {
+        logger.debug(`Raydium API rate limited for ${mintAddress} - skipping`);
+        return null;
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       
@@ -117,20 +135,31 @@ export class RaydiumService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 429) {
+          logger.debug(`Raydium API rate limited (429) for ${mintAddress}`);
+        }
         return null;
       }
 
       const data = await response.json();
+      let result = null;
+      
       if (data.data && data.data.length > 0) {
         const pool = data.data[0];
-        return {
+        result = {
           poolAddress: pool.id,
           baseVault: pool.baseVault || '',
           quoteVault: pool.quoteVault || ''
         };
       }
 
-      return null;
+      // Cache the result
+      this.cache.set(cacheKey, {
+        result,
+        expires: Date.now() + this.CACHE_TTL
+      });
+
+      return result;
     } catch (error) {
       logger.debug(`Raydium API error for ${mintAddress}:`, error);
       return null;
@@ -204,6 +233,19 @@ export class RaydiumService {
    */
   private async getLiquidityFromDexScreener(poolAddress: string): Promise<number> {
     try {
+      // Check cache first
+      const cacheKey = `dexscreener_liquidity_${poolAddress}`;
+      const cached = this.cache.get(cacheKey);
+      if (cached && cached.expires > Date.now()) {
+        return cached.result;
+      }
+
+      // Rate limiting check
+      if (this.isRateLimited()) {
+        logger.debug(`DexScreener API rate limited for ${poolAddress} - skipping`);
+        return 0;
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       
@@ -219,15 +261,26 @@ export class RaydiumService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 429) {
+          logger.debug(`DexScreener API rate limited (429) for ${poolAddress}`);
+        }
         return 0;
       }
 
       const data = await response.json();
+      let result = 0;
+      
       if (data.pair && data.pair.liquidity && data.pair.liquidity.usd) {
-        return parseFloat(data.pair.liquidity.usd);
+        result = parseFloat(data.pair.liquidity.usd);
       }
 
-      return 0;
+      // Cache the result
+      this.cache.set(cacheKey, {
+        result,
+        expires: Date.now() + this.CACHE_TTL
+      });
+
+      return result;
     } catch (error) {
       logger.debug(`DexScreener liquidity error for ${poolAddress}:`, error);
       return 0;
@@ -239,6 +292,19 @@ export class RaydiumService {
    */
   private async getLiquidityFromRaydiumAPI(poolAddress: string): Promise<number> {
     try {
+      // Check cache first
+      const cacheKey = `raydium_liquidity_${poolAddress}`;
+      const cached = this.cache.get(cacheKey);
+      if (cached && cached.expires > Date.now()) {
+        return cached.result;
+      }
+
+      // Rate limiting check
+      if (this.isRateLimited()) {
+        logger.debug(`Raydium API rate limited for ${poolAddress} - skipping`);
+        return 0;
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       
@@ -254,15 +320,26 @@ export class RaydiumService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 429) {
+          logger.debug(`Raydium API rate limited (429) for ${poolAddress}`);
+        }
         return 0;
       }
 
       const data = await response.json();
+      let result = 0;
+      
       if (data.data && data.data.tvl) {
-        return parseFloat(data.data.tvl);
+        result = parseFloat(data.data.tvl);
       }
 
-      return 0;
+      // Cache the result
+      this.cache.set(cacheKey, {
+        result,
+        expires: Date.now() + this.CACHE_TTL
+      });
+
+      return result;
     } catch (error) {
       logger.debug(`Raydium API liquidity error for ${poolAddress}:`, error);
       return 0;
@@ -307,6 +384,49 @@ export class RaydiumService {
   resetMetrics() {
     this.requestCount = 0;
     this.errorCount = 0;
+  }
+
+  /**
+   * Efficient sliding window rate limiting
+   */
+  private isRateLimited(): boolean {
+    const now = Date.now();
+    const currentSecond = Math.floor(now / 1000);
+    
+    for (const [timestamp] of this.rateLimitWindow.entries()) {
+      if (timestamp < currentSecond - 1) {
+        this.rateLimitWindow.delete(timestamp);
+      }
+    }
+    
+    const currentCount = this.rateLimitWindow.get(currentSecond) || 0;
+    if (currentCount >= this.RATE_LIMIT) {
+      return true;
+    }
+    
+    this.rateLimitWindow.set(currentSecond, currentCount + 1);
+    return false;
+  }
+
+  /**
+   * Start periodic cache cleanup to prevent memory bloat
+   */
+  private startPeriodicCacheCleanup(): void {
+    setInterval(() => {
+      const now = Date.now();
+      let cleanedCount = 0;
+      
+      for (const [key, value] of this.cache.entries()) {
+        if (value.expires < now) {
+          this.cache.delete(key);
+          cleanedCount++;
+        }
+      }
+      
+      if (cleanedCount > 0) {
+        logger.debug(`RaydiumService: Cleaned ${cleanedCount} expired cache entries, current size: ${this.cache.size}`);
+      }
+    }, 60000); // Run every 60 seconds
   }
 }
 
