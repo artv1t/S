@@ -59,35 +59,40 @@ export class OnChainFilter {
         };
       }
 
-      // Parse token mint data
+      // Parse token mint data (may be unavailable on free RPC tiers)
       const mintInfo = this.parseMintInfo(accountInfo);
       
-      if (!mintInfo) {
+      if (!mintInfo && !accountInfo) {
+        score -= 30;
+        issues.push('Account info unavailable (free RPC limitation)');
+      } else if (!mintInfo) {
         return {
           ok: false,
           score: 0,
-          reason: 'Invalid token mint',
+          reason: 'Invalid token mint data',
           filterName: 'OnChain',
           latency: Date.now() - startTime
         };
       }
 
-      // Check mint authority (should be renounced)
-      if (mintInfo.mintAuthority && !this.isNullAddress(mintInfo.mintAuthority)) {
-        score -= 40;
-        issues.push('Mint authority not renounced');
-      }
+      // Check mint authority (should be renounced) - only if we have mint info
+      if (mintInfo) {
+        if (mintInfo.mintAuthority && !this.isNullAddress(mintInfo.mintAuthority)) {
+          score -= 40;
+          issues.push('Mint authority not renounced');
+        }
 
-      // Check freeze authority (should be null)
-      if (mintInfo.freezeAuthority && !this.isNullAddress(mintInfo.freezeAuthority)) {
-        score -= 30;
-        issues.push('Freeze authority present');
-      }
+        // Check freeze authority (should be null)
+        if (mintInfo.freezeAuthority && !this.isNullAddress(mintInfo.freezeAuthority)) {
+          score -= 30;
+          issues.push('Freeze authority present');
+        }
 
-      // Check decimals (should be reasonable)
-      if (mintInfo.decimals === 0 || mintInfo.decimals > 18) {
-        score -= 20;
-        issues.push(`Unusual decimals: ${mintInfo.decimals}`);
+        // Check decimals (should be reasonable)
+        if (mintInfo.decimals === 0 || mintInfo.decimals > 18) {
+          score -= 20;
+          issues.push(`Unusual decimals: ${mintInfo.decimals}`);
+        }
       }
 
       // Check supply (should exist and be reasonable)
@@ -107,8 +112,8 @@ export class OnChainFilter {
         }
       }
 
-      // Check holder concentration
-      if (largestAccounts && supply && largestAccounts.value.length > 0) {
+      // Check holder concentration (optional - may fail on free RPC tiers)
+      if (largestAccounts && supply && largestAccounts.value && largestAccounts.value.length > 0) {
         const totalSupply = parseFloat(supply.value.amount);
         const holders = largestAccounts.value;
         
@@ -146,9 +151,12 @@ export class OnChainFilter {
           score -= 20;
           issues.push(`Few holders: ${holders.length}`);
         }
+      } else if (!largestAccounts || !largestAccounts.value) {
+        score -= 10;
+        issues.push('Holder concentration data unavailable (free RPC limitation)');
       }
 
-      const passed = score >= 60; // Lower threshold than other filters
+      const passed = score >= 45; // Lowered threshold for free RPC limitations // Adjusted threshold to account for optional holder data
       const result: FilterResult = {
         ok: passed,
         score: Math.max(0, score),
@@ -156,9 +164,9 @@ export class OnChainFilter {
         filterName: 'OnChain',
         latency: Date.now() - startTime,
         metadata: {
-          mintAuthority: mintInfo.mintAuthority,
-          freezeAuthority: mintInfo.freezeAuthority,
-          decimals: mintInfo.decimals,
+          mintAuthority: mintInfo?.mintAuthority || null,
+          freezeAuthority: mintInfo?.freezeAuthority || null,
+          decimals: mintInfo?.decimals || 0,
           supply: supply?.value?.amount
         }
       };
@@ -197,19 +205,35 @@ export class OnChainFilter {
     try {
       return await connection.getAccountInfo(mint);
     } catch (error) {
-      logger.warn(`Failed to get account info for ${mint.toString()}:`, error);
+      if (error instanceof Error && 
+          (error.message.includes('timeout') || 
+           error.message.includes('429') || 
+           error.message.includes('upgrade your tier') ||
+           error.message.includes('Too many requests'))) {
+        logger.debug(`Account info unavailable on free RPC tier for ${mint.toString()}`);
+      } else {
+        logger.warn(`Failed to get account info for ${mint.toString()}:`, error);
+      }
       return null;
     }
   }
 
   /**
-   * Get largest token accounts
+   * Get largest token accounts (may fail on free RPC tiers)
    */
   private async getLargestAccounts(connection: Connection, mint: PublicKey): Promise<any> {
     try {
       return await connection.getTokenLargestAccounts(mint);
     } catch (error) {
-      logger.warn(`Failed to get largest accounts for ${mint.toString()}:`, error);
+      if (error instanceof Error && 
+          (error.message.includes('timeout') || 
+           error.message.includes('429') || 
+           error.message.includes('upgrade your tier') ||
+           error.message.includes('Too many requests'))) {
+        logger.debug(`Largest accounts unavailable on free RPC tier for ${mint.toString()}`);
+      } else {
+        logger.warn(`Failed to get largest accounts for ${mint.toString()}:`, error);
+      }
       return null;
     }
   }
@@ -221,7 +245,15 @@ export class OnChainFilter {
     try {
       return await connection.getTokenSupply(mint);
     } catch (error) {
-      logger.warn(`Failed to get token supply for ${mint.toString()}:`, error);
+      if (error instanceof Error && 
+          (error.message.includes('timeout') || 
+           error.message.includes('429') || 
+           error.message.includes('upgrade your tier') ||
+           error.message.includes('Too many requests'))) {
+        logger.debug(`Token supply unavailable on free RPC tier for ${mint.toString()}`);
+      } else {
+        logger.warn(`Failed to get token supply for ${mint.toString()}:`, error);
+      }
       return null;
     }
   }

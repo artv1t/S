@@ -1,4 +1,4 @@
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, Connection } from '@solana/web3.js';
 import { EventBus } from '../core/eventBus.js';
 import { RPCManager } from '../rpc/rpcManager.js';
 import { TokenEvent } from '../types/index.js';
@@ -249,7 +249,10 @@ export class TokenDetector {
    */
   private isValidMintAddress(mintAddress: string): boolean {
     try {
-      if (mintAddress.length !== 44) return false;
+      if (!mintAddress || typeof mintAddress !== 'string') return false;
+      if (mintAddress.length < 32 || mintAddress.length > 44) return false;
+      if (!/^[1-9A-HJ-NP-Za-km-z]+$/.test(mintAddress)) return false;
+      
       new PublicKey(mintAddress); // Will throw if invalid
       return true;
     } catch {
@@ -673,21 +676,27 @@ export class TokenDetector {
    */
   private async pollRecentTokenAccounts(connection: any): Promise<void> {
     try {
-      // Use a simpler approach - get recent token mints
+      // Use improved approach - get recent token mints
       const recentMints = await this.getRecentTokenMints(connection);
       
-      for (const mintAddress of recentMints) {
-        if (this.isValidMintAddress(mintAddress)) {
-          const tokenEvent: TokenEvent = {
-            id: `token_${Date.now()}_${Math.random()}`,
-            mintAddress,
-            timestamp: Date.now(),
-            source: 'token_account',
-          };
-          
-          this.addToQueue(tokenEvent);
-          logger.info(`Token account found: ${mintAddress}`);
+      if (recentMints.length > 0) {
+        logger.info(`Processing ${recentMints.length} potential new tokens from recent blocks`);
+        
+        for (const mintAddress of recentMints) {
+          if (this.isValidMintAddress(mintAddress)) {
+            const tokenEvent: TokenEvent = {
+              id: `discovery_${Date.now()}_${Math.random()}`,
+              mintAddress,
+              timestamp: Date.now(),
+              source: 'transaction',
+            };
+            
+            this.addToQueue(tokenEvent);
+            logger.info(`🔍 New token discovered: ${mintAddress}`);
+          }
         }
+      } else {
+        logger.debug('No new tokens found in recent blocks (normal during quiet market periods)');
       }
     } catch (error) {
       logger.error('Error polling token accounts:', error);
@@ -695,18 +704,28 @@ export class TokenDetector {
   }
 
   /**
-   * Get recent token mints using a different approach
+   * Get recent token mints using improved extraction logic with fixed HTTP headers
    */
   private async getRecentTokenMints(connection: any): Promise<string[]> {
     try {
+      const fixedConnection = new Connection(connection.rpcEndpoint, {
+        commitment: 'processed',
+        confirmTransactionInitialTimeout: 5000,
+        httpHeaders: {
+          'Connection': 'close'
+        }
+      });
+
       // Get recent blocks and look for token creation
-      const slot = await connection.getSlot();
-      const recentSlots = Array.from({ length: 5 }, (_, i) => slot - i);
+      const slot = await fixedConnection.getSlot();
+      const recentSlots = Array.from({ length: 3 }, (_, i) => slot - i); // Reduced from 5 to 3 for efficiency
       const mints = new Set<string>();
+      let totalLogs = 0;
+      let tokenLogs = 0;
 
       for (const slotNumber of recentSlots) {
         try {
-          const block = await connection.getBlock(slotNumber, {
+          const block = await fixedConnection.getBlock(slotNumber, {
             commitment: 'confirmed',
             maxSupportedTransactionVersion: 0
           });
@@ -714,20 +733,59 @@ export class TokenDetector {
           if (block && block.transactions) {
             for (const tx of block.transactions) {
               if (tx.meta && tx.meta.logMessages) {
-                // Look for token creation patterns
+                totalLogs += tx.meta.logMessages.length;
+                
+                // Look for specific token program interactions
                 for (const log of tx.meta.logMessages) {
-                  if (log.includes('Program log: InitializeMint') || 
-                      log.includes('Program log: Create') ||
-                      log.includes('Program log: Initialize')) {
+                  if (log.includes('Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke') ||
+                      log.includes('Program log: Instruction: InitializeMint') ||
+                      log.includes('Program log: Instruction: InitializeAccount') ||
+                      log.includes('CreateAccount') ||
+                      log.includes('InitializeMint')) {
                     
-                    // Extract potential mint addresses from logs
-                    const mintMatch = log.match(/[1-9A-HJ-NP-Za-km-z]{32,44}/g);
-                    if (mintMatch) {
-                      for (const match of mintMatch) {
-                        if (this.isValidMintAddress(match) && !EXCLUDED_ADDRESSES.has(match)) {
-                          mints.add(match);
+                    tokenLogs++;
+                    
+                    // Extract mint addresses from transaction accounts
+                    if (tx.transaction && tx.transaction.message) {
+                      try {
+                        let accountKeys: PublicKey[] = [];
+                        if ('accountKeys' in tx.transaction.message) {
+                          accountKeys = tx.transaction.message.accountKeys as PublicKey[];
+                        } else if ('getAccountKeys' in tx.transaction.message) {
+                          accountKeys = tx.transaction.message.getAccountKeys().keySegments().flat();
+                        }
+                        
+                        for (const accountKey of accountKeys) {
+                          if (!accountKey) continue;
+                          
+                          const accountStr = accountKey.toString();
+                          if (!accountStr) continue;
+                          
+                          if (this.isValidMintAddress(accountStr) && !EXCLUDED_ADDRESSES.has(accountStr)) {
+                            // Additional validation: check if it's likely a new token
+                            if (!accountStr.startsWith('11111111111111111111111111111111') && // System Program
+                                !accountStr.startsWith('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') && // Token Program
+                                !accountStr.startsWith('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')) { // Associated Token Program
+                              mints.add(accountStr);
+                            }
+                          }
+                        }
+                      } catch (accountError) {
+                        logger.debug(`Error processing account keys: ${accountError instanceof Error ? accountError.message : 'Unknown error'}`);
+                      }
+                    }
+                    
+                    try {
+                      const mintMatches = log.match(/[1-9A-HJ-NP-Za-km-z]{43,44}/g);
+                      if (mintMatches) {
+                        for (const match of mintMatches) {
+                          if (match && this.isValidMintAddress(match) && !EXCLUDED_ADDRESSES.has(match)) {
+                            mints.add(match);
+                          }
                         }
                       }
+                    } catch (regexError) {
+                      logger.debug(`Error processing regex matches: ${regexError instanceof Error ? regexError.message : 'Unknown error'}`);
                     }
                   }
                 }
@@ -735,14 +793,34 @@ export class TokenDetector {
             }
           }
         } catch (slotError) {
-          // Skip failed slots
+          logger.debug(`Skipping slot ${slotNumber}: ${slotError instanceof Error ? slotError.message : 'Unknown error'}`);
           continue;
         }
       }
 
-      return Array.from(mints);
+      const mintsArray = Array.from(mints);
+      logger.debug(`Token discovery: processed ${totalLogs} logs, found ${tokenLogs} token-related logs, extracted ${mintsArray.length} potential mints`);
+      
+      if (mintsArray.length === 0) {
+        logger.debug('No new token mints found in recent blocks (this is normal during quiet periods)');
+      } else {
+        logger.info(`Found ${mintsArray.length} potential new token mints`);
+      }
+      
+      return mintsArray;
     } catch (error) {
-      logger.error('Error getting recent token mints:', error);
+      const errorDetails = {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        type: error instanceof Error ? error.constructor.name : typeof error,
+        errorObject: error,
+        stringified: JSON.stringify(error, Object.getOwnPropertyNames(error))
+      };
+      
+      logger.error('Error getting recent token mints - DETAILED:', errorDetails);
+      
+      console.error('RAW ERROR in getRecentTokenMints:', error);
+      
       return [];
     }
   }
