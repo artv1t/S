@@ -10,11 +10,10 @@ export const config: Config = {
   
   // RPC Configuration - WORKING ENDPOINTS ONLY
   rpcEndpoints: [
-    process.env.RPC_ENDPOINT_1 || 'https://solana.drpc.org',
-    process.env.RPC_ENDPOINT_2 || 'https://solana-rpc.publicnode.com',
-    process.env.RPC_ENDPOINT_3 || 'https://mainnet.helius-rpc.com/?api-key=7c8922d6-1031-42c1-b4ee-bf5daa29abd4',
-    process.env.RPC_ENDPOINT_4 || 'https://api.mainnet-beta.solana.com',
-    process.env.RPC_ENDPOINT_5 || 'https://solana.drpc.org',
+    process.env.RPC_ENDPOINT_1 || 'https://api.mainnet-beta.solana.com',
+    process.env.RPC_ENDPOINT_2 || 'https://solana.drpc.org',
+    process.env.RPC_ENDPOINT_3 || 'https://solana-rpc.publicnode.com',
+    process.env.RPC_ENDPOINT_4 || 'https://api.mainnet-beta.solana.com'
   ].filter(Boolean) as string[],
   rpcTimeout: parseInt(process.env.RPC_TIMEOUT || '3000'),
   rpcRateLimit: parseInt(process.env.RPC_RATE_LIMIT || '500'),
@@ -30,9 +29,13 @@ export const config: Config = {
   cpuLimit: parseInt(process.env.CPU_LIMIT || '60'), // Conservative CPU usage
   
   // Rate Limiting
-  jupiterRateLimit: parseInt(process.env.JUPITER_RATE_LIMIT || '50'),
+  jupiterRateLimit: parseInt(process.env.JUPITER_RATE_LIMIT || '100'), // Increased from 50 to 100
   dexScreenerRateLimit: parseInt(process.env.DEXSCREENER_RATE_LIMIT || '100'),
   apiRateLimit: parseInt(process.env.API_RATE_LIMIT || '1000'),
+  
+  // Jupiter API Configuration
+  jupiterApiKey: process.env.JUPITER_API_KEY || '', // Optional but improves rate limits
+  jupiterApiUrl: process.env.JUPITER_API_URL || 'https://quote-api.jup.ag/v6',
   
   // Caching
   cacheTtlMetadata: parseInt(process.env.CACHE_TTL_METADATA || '300'),

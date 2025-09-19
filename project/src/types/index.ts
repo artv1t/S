@@ -23,6 +23,10 @@ export interface Config {
   dexScreenerRateLimit: number;
   apiRateLimit: number;
   
+  // Jupiter API Configuration
+  jupiterApiKey: string;
+  jupiterApiUrl: string;
+  
   // Caching
   cacheTtlMetadata: number;
   cacheTtlPool: number;

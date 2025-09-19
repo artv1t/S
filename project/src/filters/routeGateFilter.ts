@@ -9,10 +9,12 @@ import { config } from '../config/index.js';
 export class RouteGateFilter {
   private cache = new Map<string, { result: FilterResult; expires: number }>();
   private rateLimitWindow = new Map<number, number>();
-  private readonly RATE_LIMIT = 50; // 50 requests per second
+  private readonly RATE_LIMIT = config.jupiterRateLimit; // Use config value
   private readonly CACHE_TTL = 60000; // 1 minute cache
-  private readonly TIMEOUT = 3000; // 3 second timeout
-  private readonly JUPITER_API_URL = 'https://quote-api.jup.ag/v6/quote';
+  private readonly TIMEOUT = 2000; // Reduced to 2 seconds for faster filtering
+  private readonly JUPITER_API_URL = `${config.jupiterApiUrl}/quote`;
+  private cacheHits = 0;
+  private cacheMisses = 0;
 
   constructor() {
     this.startPeriodicCacheCleanup();
@@ -22,8 +24,10 @@ export class RouteGateFilter {
     // Check cache first for performance
     const cached = this.cache.get(mintAddress);
     if (cached && cached.expires > Date.now()) {
+      this.cacheHits++;
       return cached.result;
     }
+    this.cacheMisses++;
 
     // Rate limiting check
     if (this.isRateLimited()) {
@@ -40,21 +44,33 @@ export class RouteGateFilter {
 
     try {
       // Jupiter API quote request with optimized parameters
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'User-Agent': 'SolanaSniper/1.0',
+        'Connection': 'keep-alive'
+      };
+      
+      if (config.jupiterApiKey) {
+        headers['Authorization'] = `Bearer ${config.jupiterApiKey}`;
+      }
+      
       const response = await axios.get(this.JUPITER_API_URL, {
         params: {
           inputMint: 'So11111111111111111111111111111111111111112', // SOL
           outputMint: mintAddress,
           amount: Math.floor(config.quoteAmount * 1e9), // Convert to lamports
-          slippageBps: 1500, // 15% max slippage
-          maxAccounts: 20,
+          slippageBps: 1000, // Reduced to 10% for better filtering
+          maxAccounts: 15, // Reduced for faster routing
           onlyDirectRoutes: true, // Faster routing
-          asLegacyTransaction: false
+          asLegacyTransaction: false,
+          restrictIntermediateTokens: true, // Optimize routing
+          excludeDexes: 'Aldrin,Crema,Cropper,Cykura,DeltaFi,GooseFX,Invariant,Lifinity,Marinade,Mercurial,Meteora,Raydium CLMM,Saber,Serum,Orca,Whirlpool' // Focus on main DEXes only
         },
         timeout: this.TIMEOUT,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'SolanaSniper/1.0'
-        }
+        headers,
+        // Connection pooling for better performance
+        httpAgent: new (require('http').Agent)({ keepAlive: true }),
+        httpsAgent: new (require('https').Agent)({ keepAlive: true })
       });
 
       const quote: JupiterQuote = response.data;
@@ -218,10 +234,11 @@ export class RouteGateFilter {
     const now = Date.now();
     const currentSecond = Math.floor(now / 1000);
     const currentRequests = this.rateLimitWindow.get(currentSecond) || 0;
+    const totalRequests = this.cacheHits + this.cacheMisses;
     
     return {
       cacheSize: this.cache.size,
-      cacheHitRate: 0, // Would need to track hits vs misses
+      cacheHitRate: totalRequests > 0 ? (this.cacheHits / totalRequests) * 100 : 0,
       requestsPerSecond: currentRequests
     };
   }

@@ -7,6 +7,7 @@ import { TradeEvent } from '../types/index.js';
 import { config } from '../config/index.js';
 import { logBuySuccess, logBuyError } from '../utils/logger.js';
 import logger from '../utils/logger.js';
+import { jupiterService } from '../services/jupiterService.js';
 
 /**
  * High-performance trader for parallel execution
@@ -17,7 +18,6 @@ export class Trader {
   private _rpcManager: RPCManager;
   private walletManager: WalletManager;
   private paperEngine: PaperEngine | null = null;
-  private jupiterAPI: any;
   private activeTrades = 0;
 
   constructor(rpcManager: RPCManager, walletManager: WalletManager) {
@@ -31,21 +31,6 @@ export class Trader {
       logger.info('📝 Paper trading engine initialized');
     }
     
-    // Initialize Jupiter API placeholder
-    this.jupiterAPI = {
-      getQuote: async (inputMint: string, outputMint: string, amount: number) => ({
-        inputMint,
-        outputMint,
-        inAmount: amount.toString(),
-        outAmount: Math.floor(amount * 0.95).toString(), // 5% slippage simulation
-        priceImpactPct: '2.5',
-        routePlan: []
-      }),
-      getSwapTransaction: async (quote: any) => ({
-        transaction: 'mock_transaction_data',
-        quote
-      })
-    };
   }
 
   async buy(mintAddress: string, quoteAmount: number): Promise<TradeEvent> {
@@ -84,7 +69,7 @@ export class Trader {
         }
 
         // Get fresh quote from Jupiter
-        const quote = await this.jupiterAPI.getQuote(
+        const quote = await jupiterService.getQuote(
           'So11111111111111111111111111111111111111112', // SOL
           mintAddress,
           Math.floor(quoteAmount * 1e9) // Convert to lamports
@@ -94,8 +79,12 @@ export class Trader {
           throw new Error('No quote available');
         }
 
-        // Real trading - would implement actual Jupiter swap execution
-        const swapTransaction = await this.jupiterAPI.getSwapTransaction(quote);
+        // Real trading - implement actual Jupiter swap execution
+        const wallet = this.walletManager.getPrimaryWallet();
+        if (!wallet) {
+          throw new Error('Primary wallet not available');
+        }
+        const swapTransaction = await jupiterService.getSwapTransaction(quote, wallet.publicKey.toString());
         const swapResult = await this.executeSwapTransaction(swapTransaction, quoteAmount, 'buy');
         
         logBuySuccess(mintAddress, swapResult.amount, swapResult.price, swapResult.signature);
@@ -177,7 +166,7 @@ export class Trader {
         }
 
         // Get fresh quote for selling (reverse direction)
-        const quote = await this.jupiterAPI.getQuote(
+        const quote = await jupiterService.getQuote(
           mintAddress, // Input mint is the token we're selling
           'So11111111111111111111111111111111111111112', // SOL
           Math.floor(amount * 1e6) // Convert to token decimals (assuming 6 decimals)
@@ -188,7 +177,11 @@ export class Trader {
         }
 
         // Real trading
-        const swapTransaction = await this.jupiterAPI.getSwapTransaction(quote);
+        const wallet = this.walletManager.getPrimaryWallet();
+        if (!wallet) {
+          throw new Error('Primary wallet not available');
+        }
+        const swapTransaction = await jupiterService.getSwapTransaction(quote, wallet.publicKey.toString());
         const swapResult = await this.executeSwapTransaction(swapTransaction, amount, 'sell');
         
         logger.info(`💰 LIVE SELL: ${mintAddress} | Amount: ${swapResult.amount.toFixed(6)} SOL | Price: ${swapResult.price.toFixed(8)} | Reason: ${reason} | TX: ${swapResult.signature}`);
