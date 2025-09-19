@@ -1,16 +1,16 @@
 {
-  "sessionId": "session_1758297586167",
+  "sessionId": "session_1758299349661",
   "sessionNumber": 1,
-  "startTime": "2025-09-19T15:59:46.167Z",
+  "startTime": "2025-09-19T16:29:09.661Z",
   "startingBalance": 0,
   "trades": [],
   "filterStats": {
-    "tokensDiscovered": 11940,
-    "tokensFiltered": 5617,
-    "routeGatePassed": 1851,
+    "tokensDiscovered": 15927,
+    "tokensFiltered": 3503,
+    "routeGatePassed": 871,
     "onChainPassed": 0,
     "dexScreenerPassed": 0,
-    "totalPassed": 1851
+    "totalPassed": 871
   },
   "performanceMetrics": {
     "peakTokensPerSecond": 0,
@@ -23,8 +23,8 @@
   "failedTrades": 0,
   "autoSellCount": 0,
   "positionsAtShutdown": [],
-  "endTime": "2025-09-19T16:02:45.357Z",
-  "duration": 179190,
+  "endTime": "2025-09-19T16:35:00.279Z",
+  "duration": 350618,
   "endingBalance": 0,
   "totalPnL": 0,
   "totalPnLPercent": null
