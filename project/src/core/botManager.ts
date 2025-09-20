@@ -78,7 +78,7 @@ export class BotManager {
       if (!this.isRunning || this.circuitBreaker.active) return;
       
       try {
-        await this.processToken(tokenEvent.mintAddress);
+        await this.processToken(tokenEvent);
       } catch (error) {
         logger.error(`Error processing token ${tokenEvent.mintAddress}:`, error);
         this.handleFailure();
@@ -93,7 +93,7 @@ export class BotManager {
       const batchSize = Math.min(config.maxConcurrentFilters, tokenEvents.length);
       for (let i = 0; i < tokenEvents.length; i += batchSize) {
         const batch = tokenEvents.slice(i, i + batchSize);
-        const promises = batch.map(event => this.processToken(event.mintAddress));
+        const promises = batch.map(event => this.processToken(event));
         
         try {
           await Promise.allSettled(promises);
@@ -128,7 +128,9 @@ export class BotManager {
   /**
    * Process individual token through the pipeline
    */
-  private async processToken(mintAddress: string): Promise<void> {
+  private async processToken(tokenEvent: TokenEvent): Promise<void> {
+    const mintAddress = tokenEvent.mintAddress;
+    
     if (!this.positionManager.canOpenNewPosition()) {
       logger.debug(`Skipping ${mintAddress}: Position limits reached`);
       return;
@@ -136,7 +138,7 @@ export class BotManager {
 
     try {
       // Run token through filter pipeline
-      const filterResult = await this.filterPipeline.processToken(mintAddress);
+      const filterResult = await this.filterPipeline.processToken(tokenEvent);
       
       if (!filterResult.passed) {
         return; // Token didn't pass filters

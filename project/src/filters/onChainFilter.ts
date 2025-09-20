@@ -41,11 +41,13 @@ export class OnChainFilter {
       const [
         accountInfo,
         largestAccounts,
-        supply
+        supply,
+        poolAge
       ] = await Promise.all([
         this.getAccountInfo(connection, mintPubkey),
         this.getLargestAccounts(connection, mintPubkey),
-        this.getTokenSupply(connection, mintPubkey)
+        this.getTokenSupply(connection, mintPubkey),
+        this.getPoolAge(connection, mintPubkey)
       ]);
 
       // Check if it's Token-2022 (not supported)
@@ -112,6 +114,25 @@ export class OnChainFilter {
         }
       }
 
+      if (poolAge !== null) {
+        const ageMs = Date.now() - poolAge;
+        if (ageMs > config.poolMaxAgeMs) {
+          return {
+            ok: false,
+            score: 0,
+            reason: `Pool too old: ${Math.round(ageMs / 60000)} minutes (max: ${Math.round(config.poolMaxAgeMs / 60000)} minutes)`,
+            filterName: 'OnChain',
+            latency: Date.now() - startTime
+          };
+        } else if (ageMs < 60000) { // Less than 1 minute old
+          score -= 10;
+          issues.push('Very new pool (< 1 minute)');
+        }
+      } else {
+        score -= 5;
+        issues.push('Pool age unavailable');
+      }
+
       // Check holder concentration (optional - may fail on free RPC tiers)
       if (largestAccounts && supply && largestAccounts.value && largestAccounts.value.length > 0) {
         const totalSupply = parseFloat(supply.value.amount);
@@ -167,7 +188,9 @@ export class OnChainFilter {
           mintAuthority: mintInfo?.mintAuthority || null,
           freezeAuthority: mintInfo?.freezeAuthority || null,
           decimals: mintInfo?.decimals || 0,
-          supply: supply?.value?.amount
+          supply: supply?.value?.amount,
+          poolAge: poolAge,
+          poolAgeMinutes: poolAge ? Math.round((Date.now() - poolAge) / 60000) : null
         }
       };
 
@@ -253,6 +276,38 @@ export class OnChainFilter {
         logger.debug(`Token supply unavailable on free RPC tier for ${mint.toString()}`);
       } else {
         logger.warn(`Failed to get token supply for ${mint.toString()}:`, error);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Get pool age by checking account creation time
+   */
+  private async getPoolAge(connection: Connection, mint: PublicKey): Promise<number | null> {
+    try {
+      const accountInfo = await connection.getAccountInfo(mint, 'confirmed');
+      if (!accountInfo) {
+        return null;
+      }
+
+      const slot = await connection.getSlot();
+      const blockTime = await connection.getBlockTime(slot);
+      
+      if (blockTime) {
+        return blockTime * 1000; // Convert to milliseconds
+      }
+      
+      return null;
+    } catch (error) {
+      if (error instanceof Error && 
+          (error.message.includes('timeout') || 
+           error.message.includes('429') || 
+           error.message.includes('upgrade your tier') ||
+           error.message.includes('Too many requests'))) {
+        logger.debug(`Pool age unavailable on free RPC tier for ${mint.toString()}`);
+      } else {
+        logger.warn(`Failed to get pool age for ${mint.toString()}:`, error);
       }
       return null;
     }

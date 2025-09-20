@@ -96,6 +96,15 @@ export interface Config {
   maxTop1HolderPercent: number;
   maxTop5HolderPercent: number;
   
+  poolMaxAgeMs: number;
+  consecutiveFilterMatches: number;
+  filterCheckDuration: number;
+  filterCheckInterval: number;
+  
+  lpLockDeadlineMs: number;
+  lpBurnThreshold: number;
+  lpLockerWhitelist: string[];
+  
   // Program IDs
   programIds: {
     pumpFun: string;
@@ -350,4 +359,23 @@ export interface MarketData {
   lastUpdate: number;
   volatility: number;
   trend: 'up' | 'down' | 'sideways';
+}
+
+export interface ConsecutiveFilterStats {
+  totalTrackedTokens: number;
+  averageAttemptsPerToken: number;
+  tokensPassedConsecutive: number;
+}
+
+export interface PoolAgeStats {
+  tokensChecked: number;
+  tokensRejectedTooOld: number;
+  averagePoolAgeMinutes: number;
+}
+
+export interface LPProtectionStats {
+  tokensChecked: number;
+  tokensWithLockedLP: number;
+  tokensWithBurnedLP: number;
+  tokensRejectedNoProtection: number;
 }

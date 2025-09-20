@@ -103,6 +103,15 @@ export const config: Config = {
   maxTop1HolderPercent: parseFloat(process.env.MAX_TOP1_HOLDER_PERCENT || '20'), // Conservative: Max 20% concentration
   maxTop5HolderPercent: parseFloat(process.env.MAX_TOP5_HOLDER_PERCENT || '50'), // Conservative: Max 50% top 5
   
+  poolMaxAgeMs: parseInt(process.env.POOL_MAX_AGE_MS || '3600000'), // 1 hour max pool age
+  consecutiveFilterMatches: parseInt(process.env.CONSECUTIVE_FILTER_MATCHES || '3'), // Must pass 3 times
+  filterCheckDuration: parseInt(process.env.FILTER_CHECK_DURATION || '300000'), // 5 minute window
+  filterCheckInterval: parseInt(process.env.FILTER_CHECK_INTERVAL || '30000'), // 30 second intervals
+  
+  lpLockDeadlineMs: parseInt(process.env.LP_LOCK_DEADLINE_MS || '900000'), // 15 minutes wait
+  lpBurnThreshold: parseFloat(process.env.LP_BURN_THRESHOLD || '80'), // 80% burn minimum
+  lpLockerWhitelist: (process.env.LP_LOCKER_WHITELIST || 'TeamFinance,Unicrypt,PinkSale').split(','),
+  
   // Program IDs
   programIds: {
     pumpFun: process.env.PUMP_FUN_PROGRAM_ID || '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P',

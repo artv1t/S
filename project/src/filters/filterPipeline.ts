@@ -1,7 +1,9 @@
-import { FilterResult } from '../types/index.js';
+import { FilterResult, TokenEvent } from '../types/index.js';
 import { RouteGateFilter } from './routeGateFilter.js';
 import { OnChainFilter } from './onChainFilter.js';
 import { DexScreenerFilter } from './dexscreenerFilter.js';
+import { ConsecutiveTracker } from './consecutiveTracker.js';
+import { LPProtectionFilter } from './lpProtectionFilter.js';
 import { RPCManager } from '../rpc/rpcManager.js';
 import { config } from '../config/index.js';
 import { EventBus } from '../core/eventBus.js';
@@ -18,6 +20,8 @@ export class FilterPipeline {
   private routeGateFilter: RouteGateFilter;
   private onChainFilter: OnChainFilter;
   private dexScreenerFilter: DexScreenerFilter;
+  private consecutiveTracker: ConsecutiveTracker;
+  private lpProtectionFilter: LPProtectionFilter;
   private rpcManager: RPCManager;
   private eventBus: EventBus;
   private processingCount = 0;
@@ -28,6 +32,8 @@ export class FilterPipeline {
     this.rpcManager = new RPCManager();
     this.onChainFilter = new OnChainFilter(this.rpcManager);
     this.dexScreenerFilter = new DexScreenerFilter();
+    this.consecutiveTracker = new ConsecutiveTracker();
+    this.lpProtectionFilter = new LPProtectionFilter(this.rpcManager);
     this.eventBus = EventBus.getInstance();
   }
 
@@ -35,10 +41,12 @@ export class FilterPipeline {
    * Process token through optimized filter pipeline
    * CRITICAL: DexScreener only runs if other filters pass!
    */
-  async processToken(mintAddress: string): Promise<{
+  async processToken(tokenEvent: TokenEvent): Promise<{
     passed: boolean;
     results: FilterResult[];
     totalScore: number;
+    reason?: string;
+    consecutiveStats?: any;
   }> {
     // Concurrency control
     if (this.processingCount >= this.MAX_CONCURRENT) {
@@ -61,6 +69,7 @@ export class FilterPipeline {
     try {
       const results: FilterResult[] = [];
       let totalScore = 0;
+      const mintAddress = tokenEvent.mintAddress;
 
       // PHASE 1: Route Gate Filter (CRITICAL - must pass first)
       if (config.enableRouteGate) {
@@ -70,6 +79,13 @@ export class FilterPipeline {
         
         results.push(routeGateResult);
         this.eventBus.emitFilterResult(mintAddress, routeGateResult);
+        
+        this.consecutiveTracker.trackFilterResult(
+          mintAddress,
+          routeGateResult.ok,
+          routeGateResult.filterName,
+          routeGateResult.score
+        );
         
         tradingLogger.logFilterResult({
           timestamp: new Date().toISOString(),
@@ -89,7 +105,8 @@ export class FilterPipeline {
           return {
             passed: false,
             results,
-            totalScore: 0
+            totalScore: 0,
+            reason: `RouteGate failed: ${routeGateResult.reason}`
           };
         }
         totalScore += routeGateResult.score;
@@ -103,6 +120,13 @@ export class FilterPipeline {
         
         results.push(onChainResult);
         this.eventBus.emitFilterResult(mintAddress, onChainResult);
+        
+        this.consecutiveTracker.trackFilterResult(
+          mintAddress,
+          onChainResult.ok,
+          onChainResult.filterName,
+          onChainResult.score
+        );
         
         tradingLogger.logFilterResult({
           timestamp: new Date().toISOString(),
@@ -122,7 +146,8 @@ export class FilterPipeline {
           return {
             passed: false,
             results,
-            totalScore: totalScore + onChainResult.score
+            totalScore: totalScore + onChainResult.score,
+            reason: `OnChain failed: ${onChainResult.reason}`
           };
         }
         totalScore += onChainResult.score;
@@ -137,6 +162,13 @@ export class FilterPipeline {
         
         results.push(dexScreenerResult);
         this.eventBus.emitFilterResult(mintAddress, dexScreenerResult);
+        
+        this.consecutiveTracker.trackFilterResult(
+          mintAddress,
+          dexScreenerResult.ok,
+          dexScreenerResult.filterName,
+          dexScreenerResult.score
+        );
         
         tradingLogger.logFilterResult({
           timestamp: new Date().toISOString(),
@@ -155,15 +187,45 @@ export class FilterPipeline {
           return {
             passed: false,
             results,
-            totalScore: totalScore + dexScreenerResult.score
+            totalScore: totalScore + dexScreenerResult.score,
+            reason: `DexScreener failed: ${dexScreenerResult.reason}`
           };
         }
         totalScore += dexScreenerResult.score;
       }
 
+      const consecutiveStats = this.consecutiveTracker.getTokenStats(mintAddress);
+      const consecutivePassed = this.consecutiveTracker.isConsecutivelyPassed(mintAddress);
+
       // Calculate final score and decision
       const averageScore = results.length > 0 ? totalScore / results.length : 0;
-      const passed = averageScore >= config.riskThreshold && results.every(r => r.ok);
+      let passed = averageScore >= config.riskThreshold && results.every(r => r.ok);
+      let reason = '';
+
+      if (!passed) {
+        reason = 'Initial filters failed or score below threshold';
+      } else if (!consecutivePassed) {
+        reason = `Consecutive requirement not met (${consecutiveStats.passedAttempts}/${config.consecutiveFilterMatches} over ${Math.round(consecutiveStats.timeSpread / 1000)}s)`;
+        passed = false;
+      } else {
+        try {
+          const lpResult = await this.lpProtectionFilter.execute(mintAddress, tokenEvent.poolAddress);
+          results.push(lpResult);
+          
+          if (!lpResult.ok) {
+            passed = false;
+            reason = `LP Protection failed: ${lpResult.reason}`;
+          } else {
+            reason = 'All filters passed including consecutive and LP protection';
+          }
+
+          logger.info(`🔒 LP Protection: ${lpResult.ok ? '✅' : '❌'} (${lpResult.score}/100) - ${lpResult.reason || 'No reason'}`);
+        } catch (lpError) {
+          logger.warn(`LP Protection check failed: ${lpError}`);
+          passed = false;
+          reason = 'LP Protection check error';
+        }
+      }
 
       if (passed) {
         logger.info({
@@ -175,10 +237,15 @@ export class FilterPipeline {
         });
       }
 
+      logger.info(`🎯 Final Result: ${passed ? '✅ APPROVED' : '❌ REJECTED'} - ${reason}`);
+      logger.info(`📈 Consecutive Stats: ${consecutiveStats.passedAttempts}/${config.consecutiveFilterMatches} attempts over ${Math.round(consecutiveStats.timeSpread / 1000)}s`);
+
       return {
         passed,
         results,
-        totalScore: averageScore
+        totalScore: averageScore,
+        reason,
+        consecutiveStats
       };
 
     } catch (error) {
@@ -192,7 +259,8 @@ export class FilterPipeline {
           filterName: 'Pipeline',
           latency: Date.now() - startTime
         }],
-        totalScore: 0
+        totalScore: 0,
+        reason: 'Pipeline error'
       };
     } finally {
       this.processingCount--;
@@ -250,11 +318,31 @@ export class FilterPipeline {
     processingCount: number;
     maxConcurrent: number;
     utilizationPercent: number;
+    consecutive: any;
+    lpProtection: any;
   } {
     return {
       processingCount: this.processingCount,
       maxConcurrent: this.MAX_CONCURRENT,
-      utilizationPercent: Math.round((this.processingCount / this.MAX_CONCURRENT) * 100)
+      utilizationPercent: Math.round((this.processingCount / this.MAX_CONCURRENT) * 100),
+      consecutive: this.consecutiveTracker.getOverallStats(),
+      lpProtection: this.lpProtectionFilter.getMetrics()
     };
+  }
+
+  /**
+   * Clear all filter caches
+   */
+  clearCaches(): void {
+    this.consecutiveTracker.clear();
+    this.lpProtectionFilter.clearCache();
+  }
+
+  /**
+   * Destroy all filters and cleanup resources
+   */
+  destroy(): void {
+    this.consecutiveTracker.destroy();
+    this.clearCaches();
   }
 }
