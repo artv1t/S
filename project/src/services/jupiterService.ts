@@ -62,11 +62,6 @@ export class JupiterService {
       onlyDirectRoutes?: boolean;
     } = {}
   ): Promise<JupiterQuote | null> {
-    if (!config.jupiterApiKey || config.jupiterApiKey.trim() === '') {
-      logger.debug(`Jupiter quote skipped for ${outputMint} - no API key (free tier mode)`);
-      return null;
-    }
-
     try {
       const response = await this.client.get('/quote', {
         params: {
@@ -93,10 +88,6 @@ export class JupiterService {
    * Get swap transaction for execution
    */
   async getSwapTransaction(quote: JupiterQuote, userPublicKey: string): Promise<any> {
-    if (!config.jupiterApiKey || config.jupiterApiKey.trim() === '') {
-      throw new Error('Jupiter swap requires API key - currently in free tier mode');
-    }
-
     try {
       const response = await this.client.post('/swap', {
         quoteResponse: quote,

@@ -35,19 +35,14 @@ export class RouteGateFilter {
     let jupiterResult = null;
     let useRaydiumFallback = false;
 
-    if (!config.jupiterApiKey || config.jupiterApiKey.trim() === '') {
-      logger.debug(`Using Raydium for ${mintAddress} (free tier mode - no Jupiter API key)`);
+    if (this.isRateLimited()) {
+      logger.debug(`Jupiter rate limited for ${mintAddress}, using Raydium fallback`);
       useRaydiumFallback = true;
     } else {
-      if (this.isRateLimited()) {
-        logger.debug(`Jupiter rate limited for ${mintAddress}, using Raydium fallback`);
+      jupiterResult = await this.checkJupiterLiquidity(mintAddress);
+      if (!jupiterResult) {
+        logger.debug(`Jupiter failed for ${mintAddress}, using Raydium fallback`);
         useRaydiumFallback = true;
-      } else {
-        jupiterResult = await this.checkJupiterLiquidity(mintAddress);
-        if (!jupiterResult) {
-          logger.debug(`Jupiter failed for ${mintAddress}, using Raydium fallback`);
-          useRaydiumFallback = true;
-        }
       }
     }
 

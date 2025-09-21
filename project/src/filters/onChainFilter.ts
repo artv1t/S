@@ -66,7 +66,7 @@ export class OnChainFilter {
       
       if (!mintInfo && !accountInfo) {
         score -= 30;
-        issues.push('Account info unavailable (free RPC limitation)');
+        issues.push('Account info unavailable');
       } else if (!mintInfo) {
         return {
           ok: false,
@@ -174,7 +174,7 @@ export class OnChainFilter {
         }
       } else if (!largestAccounts || !largestAccounts.value) {
         score -= 10;
-        issues.push('Holder concentration data unavailable (free RPC limitation)');
+        issues.push('Holder concentration data unavailable');
       }
 
       const passed = score >= 45; // Lowered threshold for free RPC limitations // Adjusted threshold to account for optional holder data
@@ -229,11 +229,10 @@ export class OnChainFilter {
       return await connection.getAccountInfo(mint);
     } catch (error) {
       if (error instanceof Error && 
-          (error.message.includes('timeout') || 
-           error.message.includes('429') || 
+          (error.message.includes('429') || 
            error.message.includes('upgrade your tier') ||
            error.message.includes('Too many requests'))) {
-        logger.debug(`Account info unavailable on free RPC tier for ${mint.toString()}`);
+        logger.debug(`Account info rate limited for ${mint.toString()}`);
       } else {
         logger.warn(`Failed to get account info for ${mint.toString()}:`, error);
       }
@@ -249,11 +248,10 @@ export class OnChainFilter {
       return await connection.getTokenLargestAccounts(mint);
     } catch (error) {
       if (error instanceof Error && 
-          (error.message.includes('timeout') || 
-           error.message.includes('429') || 
+          (error.message.includes('429') || 
            error.message.includes('upgrade your tier') ||
            error.message.includes('Too many requests'))) {
-        logger.debug(`Largest accounts unavailable on free RPC tier for ${mint.toString()}`);
+        logger.debug(`Largest accounts rate limited for ${mint.toString()}`);
       } else {
         logger.warn(`Failed to get largest accounts for ${mint.toString()}:`, error);
       }
@@ -269,11 +267,10 @@ export class OnChainFilter {
       return await connection.getTokenSupply(mint);
     } catch (error) {
       if (error instanceof Error && 
-          (error.message.includes('timeout') || 
-           error.message.includes('429') || 
+          (error.message.includes('429') || 
            error.message.includes('upgrade your tier') ||
            error.message.includes('Too many requests'))) {
-        logger.debug(`Token supply unavailable on free RPC tier for ${mint.toString()}`);
+        logger.debug(`Token supply rate limited for ${mint.toString()}`);
       } else {
         logger.warn(`Failed to get token supply for ${mint.toString()}:`, error);
       }
@@ -301,11 +298,10 @@ export class OnChainFilter {
       return null;
     } catch (error) {
       if (error instanceof Error && 
-          (error.message.includes('timeout') || 
-           error.message.includes('429') || 
+          (error.message.includes('429') || 
            error.message.includes('upgrade your tier') ||
            error.message.includes('Too many requests'))) {
-        logger.debug(`Pool age unavailable on free RPC tier for ${mint.toString()}`);
+        logger.debug(`Pool age rate limited for ${mint.toString()}`);
       } else {
         logger.warn(`Failed to get pool age for ${mint.toString()}:`, error);
       }
