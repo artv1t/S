@@ -2,6 +2,7 @@ import { Connection, Commitment } from '@solana/web3.js';
 import { config } from '../config/index.js';
 import { RPCHealth } from '../types/index.js';
 import { logHealthCheck } from '../utils/logger.js';
+import logger from '../utils/logger.js';
 
 /**
  * High-performance RPC manager with connection pooling and health monitoring
@@ -52,9 +53,9 @@ export class RPCManager {
         this.rateLimits.set(endpoint, []);
         this.requestCounts.set(endpoint, 0);
         
-        console.log(`✅ RPC ${index + 1} initialized: ${this.maskEndpoint(endpoint)}`);
+        logger.debug(`✅ RPC ${index + 1} initialized: ${this.maskEndpoint(endpoint)}`);
       } catch (error) {
-        console.error(`❌ Failed to initialize RPC ${index + 1}: ${this.maskEndpoint(endpoint)}`, error);
+        logger.error(`❌ Failed to initialize RPC ${index + 1}: ${this.maskEndpoint(endpoint)}`, error);
       }
     });
   }
@@ -82,7 +83,7 @@ export class RPCManager {
   private startHealthChecks(): void {
     setInterval(() => {
       this.performHealthChecks().catch(error => {
-        console.error('Health check error:', error);
+        logger.error('Health check error:', error);
       });
     }, this.HEALTH_CHECK_INTERVAL);
   }
@@ -209,7 +210,7 @@ export class RPCManager {
           !error.message.includes('timeout') && 
           !error.message.includes('ECONNREFUSED') &&
           !error.message.includes('aborted')) {
-        console.error(`RPC Health check error for ${this.maskEndpoint(endpoint)}:`, error.message);
+        logger.error(`RPC Health check error for ${this.maskEndpoint(endpoint)}:`, error.message);
       }
     }
   }
@@ -291,7 +292,7 @@ export class RPCManager {
           try {
             return await request();
           } catch (error) {
-            console.error('Batch request failed:', error);
+            logger.error('Batch request failed:', error);
             return null;
           }
         })
@@ -347,7 +348,7 @@ export class RPCManager {
       requestsPerSecond: this.calculateRequestsPerSecond()
     };
     
-    console.log(`📊 RPC Metrics: ${healthyCount}/${this.connections.size} healthy, ${metrics.averageLatency}ms avg latency, ${metrics.requestsPerSecond} req/s`);
+    logger.debug(`📊 RPC Metrics: ${healthyCount}/${this.connections.size} healthy, ${metrics.averageLatency}ms avg latency, ${metrics.requestsPerSecond} req/s`);
   }
 
   /**

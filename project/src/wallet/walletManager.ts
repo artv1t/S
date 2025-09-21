@@ -69,30 +69,46 @@ export class WalletManager {
    */
   private loadWallets(): void {
     try {
+      logger.debug('🔧 WalletManager.loadWallets() starting...');
+      
       // Load primary wallet if specified
       if (config.walletPrivateKeyPath && fs.existsSync(config.walletPrivateKeyPath)) {
+        logger.debug(`📂 Loading primary wallet from: ${config.walletPrivateKeyPath}`);
         const primaryWallet = this.loadWalletFromFile(config.walletPrivateKeyPath, 'primary');
         if (primaryWallet) {
           logger.info(`🔑 Loaded primary wallet: ${primaryWallet.publicKey.toString()}`);
+        } else {
+          logger.error('❌ Failed to load primary wallet');
         }
+      } else {
+        logger.warn(`⚠️ Primary wallet path not found: ${config.walletPrivateKeyPath}`);
       }
 
       // Load additional wallets from wallet directory
       if (fs.existsSync(this.WALLET_DIR)) {
+        logger.debug(`📁 Scanning wallet directory: ${this.WALLET_DIR}`);
         const files = fs.readdirSync(this.WALLET_DIR);
         const walletFiles = files.filter(f => f.endsWith('.json') && f !== 'primary.json');
+        logger.debug(`📄 Found ${walletFiles.length} additional wallet files`);
         
         for (const file of walletFiles) {
           const filePath = path.join(this.WALLET_DIR, file);
           const walletName = path.basename(file, '.json');
+          logger.debug(`🔑 Loading wallet: ${walletName}`);
           this.loadWalletFromFile(filePath, walletName);
         }
+      } else {
+        logger.debug(`📁 Wallet directory does not exist: ${this.WALLET_DIR}`);
       }
 
       logger.info(`💼 Loaded ${this.wallets.size} wallets total`);
       
       // Initialize wallet info for all loaded wallets
+      logger.debug('📊 Initializing wallet info...');
       this.initializeWalletInfo();
+      logger.debug('✅ Wallet info initialized');
+      
+      logger.debug('🎉 WalletManager.loadWallets() completed successfully');
       
     } catch (error) {
       logger.error('❌ Failed to load wallets:', error);
@@ -105,6 +121,8 @@ export class WalletManager {
    */
   private loadWalletFromFile(filePath: string, name: string): Keypair | null {
     try {
+      logger.debug(`🔧 Loading wallet file: ${filePath} as ${name}`);
+      
       // Check file permissions
       const stats = fs.statSync(filePath);
       if ((stats.mode & 0o077) !== 0) {
@@ -113,33 +131,46 @@ export class WalletManager {
       }
 
       const data = fs.readFileSync(filePath, 'utf8');
+      logger.debug(`📄 Read ${data.length} characters from wallet file`);
+      
       let keyData: number[];
 
       try {
         const parsed = JSON.parse(data);
+        logger.debug(`📊 Parsed wallet data, type: ${typeof parsed}, isArray: ${Array.isArray(parsed)}`);
         
         // Handle different wallet file formats
         if (Array.isArray(parsed)) {
           keyData = parsed;
+          logger.debug(`✅ Using array format, length: ${keyData.length}`);
         } else if (parsed.privateKey) {
           keyData = parsed.privateKey;
+          logger.debug(`✅ Using privateKey field, length: ${keyData.length}`);
         } else if (parsed.secretKey) {
           keyData = parsed.secretKey;
+          logger.debug(`✅ Using secretKey field, length: ${keyData.length}`);
         } else {
-          throw new Error('Invalid wallet file format');
+          throw new Error('Invalid wallet file format - no recognized key field');
         }
       } catch (parseError) {
+        logger.debug(`❌ JSON parse failed: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
         // Try to decrypt if it's encrypted
         if (config.walletPassphrase) {
+          logger.debug('🔐 Attempting to decrypt wallet data...');
           keyData = this.decryptWalletData(data, config.walletPassphrase);
         } else {
           throw parseError;
         }
       }
 
+      if (!keyData || keyData.length !== 64) {
+        throw new Error(`Invalid key data length: ${keyData?.length || 0}, expected 64`);
+      }
+
       const keypair = Keypair.fromSecretKey(new Uint8Array(keyData));
       this.wallets.set(name, keypair);
       
+      logger.debug(`✅ Successfully loaded wallet ${name}: ${keypair.publicKey.toString()}`);
       return keypair;
     } catch (error) {
       logger.error(`❌ Failed to load wallet ${name}:`, error);

@@ -46,7 +46,7 @@ export class ConsecutiveTracker {
     
     this.tokenHistory.set(mintAddress, validAttempts);
     
-    logger.debug(`Tracked filter result for ${mintAddress}: ${filterName} = ${passed} (score: ${score})`);
+    logger.debug(`🔄 CONSECUTIVE_TRACKING: ${mintAddress} - ${filterName} = ${passed} (score: ${score})`);
   }
 
   /**
@@ -68,7 +68,7 @@ export class ConsecutiveTracker {
       const minSpread = config.filterCheckInterval * (config.consecutiveFilterMatches - 1);
       
       if (timeSpread >= minSpread) {
-        logger.info(`Token ${mintAddress} passed consecutive filter check: ${passedAttempts.length}/${config.consecutiveFilterMatches} over ${Math.round(timeSpread / 1000)}s`);
+        logger.info(`✅ CONSECUTIVE_PASS: ${mintAddress} - ${passedAttempts.length}/${config.consecutiveFilterMatches} over ${Math.round(timeSpread / 1000)}s`);
         return true;
       }
     }
@@ -143,7 +143,7 @@ export class ConsecutiveTracker {
     }
     
     if (cleanedCount > 0) {
-      logger.debug(`Cleaned up ${cleanedCount} expired token tracking entries`);
+      logger.debug(`🧹 CONSECUTIVE_CLEANUP: Removed ${cleanedCount} expired token tracking entries`);
     }
   }
 

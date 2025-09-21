@@ -55,6 +55,7 @@ export class LPProtectionFilter {
       let result: FilterResult;
       
       if (lpStatus.locked && lpStatus.locker && config.lpLockerWhitelist.includes(lpStatus.locker)) {
+        logger.debug(`✅ LP_LOCK_OK: ${mintAddress} - locked in ${lpStatus.locker}`);
         result = {
           ok: true,
           score: 100,
@@ -68,6 +69,7 @@ export class LPProtectionFilter {
           }
         };
       } else if (lpStatus.method === 'burned' && lpStatus.burnPercentage && lpStatus.burnPercentage >= config.lpBurnThreshold) {
+        logger.debug(`✅ LP_BURN_OK: ${mintAddress} - ${lpStatus.burnPercentage.toFixed(1)}% burned`);
         result = {
           ok: true,
           score: 80,
@@ -96,6 +98,7 @@ export class LPProtectionFilter {
             }
           };
         } else {
+          logger.debug(`❌ LP_NOT_PROTECTED: ${mintAddress} - burn: ${lpStatus.burnPercentage?.toFixed(1) || 0}%, locked: ${lpStatus.locked}`);
           result = {
             ok: false,
             score: 0,

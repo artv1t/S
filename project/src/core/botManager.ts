@@ -38,21 +38,38 @@ export class BotManager {
   };
 
   constructor() {
+    logger.debug('🔧 BotManager constructor starting...');
+    
     this.eventBus = EventBus.getInstance();
+    logger.debug('✅ EventBus initialized');
+    
     this.rpcManager = new RPCManager();
+    logger.debug('✅ RPCManager initialized');
     
     // Initialize wallet manager with primary RPC connection
     const primaryConnection = this.rpcManager.getHealthyConnection();
     if (!primaryConnection) {
       throw new Error('No healthy RPC connection available for wallet manager');
     }
+    logger.debug('✅ Primary RPC connection obtained');
+    
     this.walletManager = new WalletManager(primaryConnection);
+    logger.debug('✅ WalletManager initialized');
     
     this.tokenDetector = new TokenDetector(this.rpcManager);
+    logger.debug('✅ TokenDetector initialized');
+    
     this.filterPipeline = new FilterPipeline();
+    logger.debug('✅ FilterPipeline initialized');
+    
     this.trader = new Trader(this.rpcManager, this.walletManager);
+    logger.debug('✅ Trader initialized');
+    
     this.positionManager = new PositionManager(this.trader);
+    logger.debug('✅ PositionManager initialized');
+    
     this.healthMonitor = new HealthMonitor(this);
+    logger.debug('✅ HealthMonitor initialized');
     
     // Initialize trading safety
     this.tradingSafety = {
@@ -64,9 +81,15 @@ export class BotManager {
         failedChecks: []
       })
     };
+    logger.debug('✅ Trading safety initialized');
     
     this.setupEventListeners();
+    logger.debug('✅ Event listeners setup');
+    
     this.startDailyReset();
+    logger.debug('✅ Daily reset timer started');
+    
+    logger.debug('🎉 BotManager constructor completed successfully');
   }
 
   /**
@@ -216,18 +239,28 @@ export class BotManager {
   async start(): Promise<void> {
     if (this.isRunning) return;
     
+    logger.debug('🚀 BotManager.start() beginning...');
+    
     this.isRunning = true;
     this.startTime = Date.now();
     this.circuitBreaker.active = false;
     this.circuitBreaker.failureCount = 0;
     
+    logger.debug('📊 Getting wallet balance...');
     const startingBalance = await this.getWalletBalance();
+    logger.debug(`💰 Starting balance: ${startingBalance} SOL`);
+    
+    logger.debug('📝 Starting session logger...');
     sessionLogger.startSession(startingBalance);
     
+    logger.debug('🔍 Starting token detector...');
     await this.tokenDetector.start();
+    logger.debug('✅ Token detector started');
     
     // Start real-time monitoring
+    logger.debug('📈 Starting real-time monitor...');
     realTimeMonitor.start();
+    logger.debug('✅ Real-time monitor started');
     
     logger.info({
       code: 'BOT_STARTED',
@@ -238,6 +271,8 @@ export class BotManager {
       quoteAmount: config.quoteAmount,
       startingBalance
     });
+    
+    logger.debug('🎉 BotManager.start() completed successfully');
   }
 
   /**
@@ -477,20 +512,27 @@ export class BotManager {
    */
   private async getWalletBalance(): Promise<number> {
     try {
+      logger.debug('💰 Getting wallet balance...');
+      
       const wallet = this.walletManager.getPrimaryWallet();
       if (!wallet) {
         logger.warn('No primary wallet available for balance check');
         return 0;
       }
+      logger.debug(`🔑 Using wallet: ${wallet.publicKey.toString()}`);
 
       const connection = this.rpcManager.getHealthyConnection();
       if (!connection) {
         logger.warn('No healthy RPC connection available for balance check');
         return 0;
       }
+      logger.debug('🌐 RPC connection obtained for balance check');
 
       const balance = await connection.getBalance(wallet.publicKey);
-      return balance / 1e9; // Convert lamports to SOL
+      const solBalance = balance / 1e9; // Convert lamports to SOL
+      logger.debug(`💰 Wallet balance: ${balance} lamports = ${solBalance} SOL`);
+      
+      return solBalance;
     } catch (error) {
       logger.error('Error getting wallet balance:', error);
       return 0;

@@ -116,7 +116,10 @@ export class OnChainFilter {
 
       if (poolAge !== null) {
         const ageMs = Date.now() - poolAge;
+        logger.debug(`🕐 Pool age check: ${Math.round(ageMs / 60000)} minutes old (max: ${Math.round(config.poolMaxAgeMs / 60000)} minutes)`);
+        
         if (ageMs > config.poolMaxAgeMs) {
+          logger.debug(`❌ SKIP_POOL_TOO_OLD: ${mintAddress} - ${Math.round(ageMs / 60000)} minutes old`);
           return {
             ok: false,
             score: 0,
@@ -127,10 +130,14 @@ export class OnChainFilter {
         } else if (ageMs < 60000) { // Less than 1 minute old
           score -= 10;
           issues.push('Very new pool (< 1 minute)');
+          logger.debug(`⚠️ Very new pool: ${Math.round(ageMs / 1000)} seconds old`);
+        } else {
+          logger.debug(`✅ Pool age acceptable: ${Math.round(ageMs / 60000)} minutes old`);
         }
       } else {
         score -= 5;
         issues.push('Pool age unavailable');
+        logger.debug(`⚠️ Pool age unavailable for ${mintAddress}`);
       }
 
       // Check holder concentration (optional - may fail on free RPC tiers)
