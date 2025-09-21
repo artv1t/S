@@ -1,16 +1,16 @@
 {
-  "sessionId": "session_1758369623161",
-  "sessionNumber": 3,
-  "startTime": "2025-09-20T12:00:23.161Z",
+  "sessionId": "session_1758370391769",
+  "sessionNumber": 4,
+  "startTime": "2025-09-20T12:13:11.769Z",
   "startingBalance": 0,
   "trades": [],
   "filterStats": {
-    "tokensDiscovered": 25916,
-    "tokensFiltered": 6125,
-    "routeGatePassed": 1485,
+    "tokensDiscovered": 28252,
+    "tokensFiltered": 6931,
+    "routeGatePassed": 1590,
     "onChainPassed": 0,
     "dexScreenerPassed": 0,
-    "totalPassed": 1485
+    "totalPassed": 1590
   },
   "performanceMetrics": {
     "peakTokensPerSecond": 0,

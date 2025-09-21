@@ -1,0 +1,65 @@
+
+> solana-sniper-bot@1.0.0 start:paper
+> PAPER_MODE=true node dist/index.js
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    SOLANA SNIPER BOT v1.0                    ║
+║                High-Performance Trading Bot                   ║
+║                                                               ║
+║  🚀 1000+ Events/sec  💰 Auto TP/SL  ⚡ Real-time Detection  ║
+╚═══════════════════════════════════════════════════════════════╝
+
+✅ RPC 1 initialized: https://solana.drpc.org
+✅ RPC 2 initialized: https://solana-rpc.publicnode.com
+✅ RPC 3 initialized: https://mainnet.helius-rpc.com/?api-key=***
+✅ RPC 4 initialized: https://api.mainnet-beta.solana.com
+✅ RPC 1 initialized: https://solana.drpc.org
+✅ RPC 2 initialized: https://solana-rpc.publicnode.com
+✅ RPC 3 initialized: https://mainnet.helius-rpc.com/?api-key=***
+✅ RPC 4 initialized: https://api.mainnet-beta.solana.com
+(node:44584) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[2025-09-18 20:16:07.334 +0000] [32mINFO[39m: [36m[] 🚀 Starting Solana Sniper Bot...[39m
+[2025-09-18 20:16:07.334 +0000] [32mINFO[39m: [36m[] 📊 Mode: PAPER TRADING[39m
+[2025-09-18 20:16:07.334 +0000] [32mINFO[39m: [36m[] 💰 Quote Amount: 0.00001 SOL[39m
+[2025-09-18 20:16:07.334 +0000] [32mINFO[39m: [36m[] 📈 Take Profit: 50%[39m
+[2025-09-18 20:16:07.334 +0000] [32mINFO[39m: [36m[] 📉 Stop Loss: 25%[39m
+[2025-09-18 20:16:07.334 +0000] [32mINFO[39m: [36m[] ⏰ TTL: 3 minutes[39m
+[2025-09-18 20:16:07.334 +0000] [32mINFO[39m: [36m[] 🔗 RPC Endpoints: 4[39m
+[2025-09-18 20:16:07.334 +0000] [32mINFO[39m: [36m[] ⚡ Max Concurrent Trades: 5[39m
+[2025-09-18 20:16:07.334 +0000] [32mINFO[39m: [36m[] 🔍 Max Concurrent Filters: 10[39m
+[2025-09-18 20:16:07.337 +0000] [31mERROR[39m: [36m[] ❌ Failed to load wallet primary:[39m
+[2025-09-18 20:16:07.337 +0000] [31mERROR[39m: [36m[] ❌ Failed to load wallet trading-wallet:[39m
+[2025-09-18 20:16:07.337 +0000] [32mINFO[39m: [36m[] 💼 Loaded 0 wallets total[39m
+[2025-09-18 20:16:07.340 +0000] [32mINFO[39m: [36m[] 📊 Loaded 0 paper positions and 0 market data entries[39m
+[2025-09-18 20:16:07.340 +0000] [32mINFO[39m: [36m[] 📝 Paper trading engine initialized[39m
+[2025-09-18 20:16:07.340 +0000] [32mINFO[39m: [36m[] 📊 Loaded 0 active positions[39m
+[2025-09-18 20:16:07.341 +0000] [32mINFO[39m: [36m[] 📊 Loaded 100 active health alerts[39m
+[2025-09-18 20:16:07.341 +0000] [32mINFO[39m: [36m[] 📊 Health monitoring started[39m
+node:events:502
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3001
+    at Server.setupListenHandle [as _listen2] (node:net:1912:16)
+    at listenInCluster (node:net:1969:12)
+    at Server.listen (node:net:2074:7)
+    at file:///home/ubuntu/repos/S/project/dist/api/server.js:113:25
+    at new Promise (<anonymous>)
+    at APIServer.start (file:///home/ubuntu/repos/S/project/dist/api/server.js:112:16)
+    at main (file:///home/ubuntu/repos/S/project/dist/index.js:67:29)
+    at file:///home/ubuntu/repos/S/project/dist/index.js:183:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:547:26)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1948:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 3001
+}
+
+Node.js v22.12.0

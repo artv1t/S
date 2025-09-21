@@ -1,0 +1,335 @@
+
+> solana-sniper-bot@1.0.0 start:paper
+> PAPER_MODE=true node dist/index.js
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    SOLANA SNIPER BOT v1.0                    ║
+║                High-Performance Trading Bot                   ║
+║                                                               ║
+║  🚀 1000+ Events/sec  💰 Auto TP/SL  ⚡ Real-time Detection  ║
+╚═══════════════════════════════════════════════════════════════╝
+
+✅ RPC 1 initialized: https://solana.drpc.org
+✅ RPC 2 initialized: https://solana-rpc.publicnode.com
+✅ RPC 3 initialized: https://mainnet.helius-rpc.com/?api-key=***
+✅ RPC 4 initialized: https://api.mainnet-beta.solana.com
+✅ RPC 1 initialized: https://solana.drpc.org
+✅ RPC 2 initialized: https://solana-rpc.publicnode.com
+✅ RPC 3 initialized: https://mainnet.helius-rpc.com/?api-key=***
+✅ RPC 4 initialized: https://api.mainnet-beta.solana.com
+(node:44030) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[2025-09-18 20:14:09.469 +0000] [32mINFO[39m: [36m[] 🚀 Starting Solana Sniper Bot...[39m
+[2025-09-18 20:14:09.469 +0000] [32mINFO[39m: [36m[] 📊 Mode: PAPER TRADING[39m
+[2025-09-18 20:14:09.469 +0000] [32mINFO[39m: [36m[] 💰 Quote Amount: 0.00001 SOL[39m
+[2025-09-18 20:14:09.469 +0000] [32mINFO[39m: [36m[] 📈 Take Profit: 50%[39m
+[2025-09-18 20:14:09.469 +0000] [32mINFO[39m: [36m[] 📉 Stop Loss: 25%[39m
+[2025-09-18 20:14:09.469 +0000] [32mINFO[39m: [36m[] ⏰ TTL: 3 minutes[39m
+[2025-09-18 20:14:09.469 +0000] [32mINFO[39m: [36m[] 🔗 RPC Endpoints: 4[39m
+[2025-09-18 20:14:09.469 +0000] [32mINFO[39m: [36m[] ⚡ Max Concurrent Trades: 5[39m
+[2025-09-18 20:14:09.469 +0000] [32mINFO[39m: [36m[] 🔍 Max Concurrent Filters: 10[39m
+[2025-09-18 20:14:09.472 +0000] [31mERROR[39m: [36m[] ❌ Failed to load wallet primary:[39m
+[2025-09-18 20:14:09.472 +0000] [31mERROR[39m: [36m[] ❌ Failed to load wallet trading-wallet:[39m
+[2025-09-18 20:14:09.472 +0000] [32mINFO[39m: [36m[] 💼 Loaded 0 wallets total[39m
+[2025-09-18 20:14:09.475 +0000] [32mINFO[39m: [36m[] 📊 Loaded 0 paper positions and 0 market data entries[39m
+[2025-09-18 20:14:09.475 +0000] [32mINFO[39m: [36m[] 📝 Paper trading engine initialized[39m
+[2025-09-18 20:14:09.476 +0000] [32mINFO[39m: [36m[] 📊 Loaded 0 active positions[39m
+[2025-09-18 20:14:09.477 +0000] [32mINFO[39m: [36m[] 📊 Loaded 100 active health alerts[39m
+[2025-09-18 20:14:09.477 +0000] [32mINFO[39m: [36m[] 📊 Health monitoring started[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] API server started on port 3001[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] 🌐 API server started on port 3001[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] 📊 Health check: http://localhost:3001/health[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] 📈 Metrics: http://localhost:3001/metrics[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] 🚀 Starting high-performance token detector...[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] 📡 Using log monitoring for token detection...[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] Test token 1 added: 4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] Test token 2 added: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] Test token 3 added: Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] Test token 4 added: mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] Test token 5 added: DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] ✅ Token detector started successfully[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[BOT_STARTED] [39m
+    code: "BOT_STARTED"
+    mode: "paper"
+    maxPositions: 5
+    maxConcurrentTrades: 5
+    quoteAmount: 0.00001
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] ✅ Bot started successfully[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] 🎯 Performance Targets:[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[]    • Events/sec: 1000+[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[]    • Processing latency: <50ms[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[]    • Memory usage: <2GB[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[]    • Success rate: >95%[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] 🔒 Security Features:[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[]    • Rate limiting enabled[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[]    • Input validation active[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[]    • File system protection[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[]    • API key authentication[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[]    • Security event logging[39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] 🎉 Solana Sniper Bot is now running![39m
+[2025-09-18 20:14:09.485 +0000] [32mINFO[39m: [36m[] 📝 Paper mode: No real trades will be executed[39m
+[2025-09-18 20:14:09.486 +0000] [32mINFO[39m: [36m[DETECTED_POOL] [39m
+    code: "DETECTED_POOL"
+    mintAddress: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"
+    source: "manual"
+[2025-09-18 20:14:09.486 +0000] [32mINFO[39m: [36m[DETECTED_POOL] [39m
+    code: "DETECTED_POOL"
+    mintAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    source: "manual"
+[2025-09-18 20:14:09.486 +0000] [32mINFO[39m: [36m[DETECTED_POOL] [39m
+    code: "DETECTED_POOL"
+    mintAddress: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
+    source: "manual"
+[2025-09-18 20:14:09.486 +0000] [32mINFO[39m: [36m[DETECTED_POOL] [39m
+    code: "DETECTED_POOL"
+    mintAddress: "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So"
+    source: "manual"
+[2025-09-18 20:14:09.486 +0000] [32mINFO[39m: [36m[DETECTED_POOL] [39m
+    code: "DETECTED_POOL"
+    mintAddress: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"
+    source: "manual"
+[2025-09-18 20:14:09.784 +0000] [33mWARN[39m: [36m[] Failed to get largest accounts for DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263:[39m
+[2025-09-18 20:14:09.784 +0000] [33mWARN[39m: [36m[] Failed to get token supply for DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263:[39m
+[2025-09-18 20:14:09.784 +0000] [33mWARN[39m: [36m[] Failed to get account info for DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263:[39m
+[2025-09-18 20:14:09.784 +0000] [32mINFO[39m: [36m[SKIP_ONCHAIN] [39m
+    code: "SKIP_ONCHAIN"
+    mintAddress: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"
+    reason: "Account info unavailable (free RPC limitation), No token supply data, Holder concentration data unavailable (free RPC limitation)"
+    score: 35
+[2025-09-18 20:14:09.791 +0000] [33mWARN[39m: [36m[] Failed to get largest accounts for EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:[39m
+[2025-09-18 20:14:09.791 +0000] [33mWARN[39m: [36m[] Failed to get token supply for EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:[39m
+[2025-09-18 20:14:09.791 +0000] [33mWARN[39m: [36m[] Failed to get account info for EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v:[39m
+[2025-09-18 20:14:09.791 +0000] [32mINFO[39m: [36m[SKIP_ONCHAIN] [39m
+    code: "SKIP_ONCHAIN"
+    mintAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    reason: "Account info unavailable (free RPC limitation), No token supply data, Holder concentration data unavailable (free RPC limitation)"
+    score: 35
+[2025-09-18 20:14:09.799 +0000] [33mWARN[39m: [36m[] Failed to get largest accounts for mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So:[39m
+[2025-09-18 20:14:09.799 +0000] [33mWARN[39m: [36m[] Failed to get token supply for mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So:[39m
+[2025-09-18 20:14:09.799 +0000] [33mWARN[39m: [36m[] Failed to get account info for mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So:[39m
+[2025-09-18 20:14:09.799 +0000] [32mINFO[39m: [36m[SKIP_ONCHAIN] [39m
+    code: "SKIP_ONCHAIN"
+    mintAddress: "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So"
+    reason: "Account info unavailable (free RPC limitation), No token supply data, Holder concentration data unavailable (free RPC limitation)"
+    score: 35
+[2025-09-18 20:14:09.804 +0000] [33mWARN[39m: [36m[] Failed to get largest accounts for 4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R:[39m
+[2025-09-18 20:14:09.804 +0000] [33mWARN[39m: [36m[] Failed to get token supply for 4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R:[39m
+[2025-09-18 20:14:09.804 +0000] [33mWARN[39m: [36m[] Failed to get account info for 4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R:[39m
+[2025-09-18 20:14:09.804 +0000] [32mINFO[39m: [36m[SKIP_ONCHAIN] [39m
+    code: "SKIP_ONCHAIN"
+    mintAddress: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"
+    reason: "Account info unavailable (free RPC limitation), No token supply data, Holder concentration data unavailable (free RPC limitation)"
+    score: 35
+[2025-09-18 20:14:09.811 +0000] [33mWARN[39m: [36m[] Failed to get largest accounts for Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB:[39m
+[2025-09-18 20:14:09.811 +0000] [33mWARN[39m: [36m[] Failed to get token supply for Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB:[39m
+[2025-09-18 20:14:09.811 +0000] [33mWARN[39m: [36m[] Failed to get account info for Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB:[39m
+[2025-09-18 20:14:09.811 +0000] [32mINFO[39m: [36m[SKIP_ONCHAIN] [39m
+    code: "SKIP_ONCHAIN"
+    mintAddress: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
+    reason: "Account info unavailable (free RPC limitation), No token supply data, Holder concentration data unavailable (free RPC limitation)"
+    score: 35
+[2025-09-18 20:14:14.534 +0000] [32mINFO[39m: [36m[HEALTH_CHECK] [39m
+    code: "HEALTH_CHECK"
+    component: "RPC"
+    status: "healthy"
+    latency: 57
+[2025-09-18 20:14:14.535 +0000] [32mINFO[39m: [36m[HEALTH_CHECK] [39m
+    code: "HEALTH_CHECK"
+    component: "RPC"
+    status: "healthy"
+    latency: 61
+[2025-09-18 20:14:14.681 +0000] [32mINFO[39m: [36m[HEALTH_CHECK] [39m
+    code: "HEALTH_CHECK"
+    component: "RPC"
+    status: "healthy"
+    latency: 208
+[2025-09-18 20:14:14.716 +0000] [32mINFO[39m: [36m[HEALTH_CHECK] [39m
+    code: "HEALTH_CHECK"
+    component: "RPC"
+    status: "healthy"
+    latency: 240
+[2025-09-18 20:14:14.752 +0000] [32mINFO[39m: [36m[HEALTH_CHECK] [39m
+    code: "HEALTH_CHECK"
+    component: "RPC"
+    status: "healthy"
+    latency: 279
+[2025-09-18 20:14:14.791 +0000] [32mINFO[39m: [36m[HEALTH_CHECK] [39m
+    code: "HEALTH_CHECK"
+    component: "RPC"
+    status: "healthy"
+    latency: 314
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:14:19.470 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 2
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 58
+[2025-09-18 20:14:19.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.0015091178963888888hours (threshold: 0hours)[39m
+[2025-09-18 20:14:19.486 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+[2025-09-18 20:14:24.718 +0000] [32mINFO[39m: [36m[] [39m
+    type: "api_request"
+    method: "GET"
+    path: "/health"
+    clientId: "083f89a9bc2e8707"
+    userAgent: "curl/7.81.0"
+[2025-09-18 20:14:24.722 +0000] [32mINFO[39m: [36m[] [39m
+    type: "api_response"
+    method: "GET"
+    path: "/health"
+    statusCode: 200
+    duration: 4
+    clientId: "083f89a9bc2e8707"
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:14:29.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 9999
+    memoryUsage: 64
+[2025-09-18 20:14:29.480 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: cpu_usage is 100% (threshold: 90%)[39m
+[2025-09-18 20:14:29.481 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.004286855396111111hours (threshold: 0hours)[39m
+[2025-09-18 20:14:29.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:14:39.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 55
+[2025-09-18 20:14:39.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.007065204680555556hours (threshold: 0hours)[39m
+[2025-09-18 20:14:39.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:14:49.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 53
+[2025-09-18 20:14:49.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.009842981661666667hours (threshold: 0hours)[39m
+[2025-09-18 20:14:49.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:14:59.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 58
+[2025-09-18 20:14:59.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.012620774180277778hours (threshold: 0hours)[39m
+[2025-09-18 20:14:59.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:15:09.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 63
+[2025-09-18 20:15:09.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.015398536086111112hours (threshold: 0hours)[39m
+[2025-09-18 20:15:09.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+[2025-09-18 20:15:09.485 +0000] [32mINFO[39m: [36m[] 📊 Status: 🟢 Running | Uptime: 60s | Events: 0 | Trades: 0 | PnL: 0.0000 SOL | Positions: 0[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:15:19.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 59
+[2025-09-18 20:15:19.480 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.018176317483888888hours (threshold: 0hours)[39m
+[2025-09-18 20:15:19.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:15:29.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 59
+[2025-09-18 20:15:29.480 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.02095407738111111hours (threshold: 0hours)[39m
+[2025-09-18 20:15:29.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+RouteGateFilter: Cleaned 5 expired cache entries, current size: 0
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:15:39.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 62
+[2025-09-18 20:15:39.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.02373186274472222hours (threshold: 0hours)[39m
+[2025-09-18 20:15:39.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:15:49.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 55
+[2025-09-18 20:15:49.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.026509644323333335hours (threshold: 0hours)[39m
+[2025-09-18 20:15:49.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:15:59.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 57
+[2025-09-18 20:15:59.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.029287408430555557hours (threshold: 0hours)[39m
+[2025-09-18 20:15:59.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:16:09.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 25
+[2025-09-18 20:16:09.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.03206519505472222hours (threshold: 0hours)[39m
+[2025-09-18 20:16:09.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+[2025-09-18 20:16:09.485 +0000] [32mINFO[39m: [36m[] 📊 Status: 🟢 Running | Uptime: 120s | Events: 0 | Trades: 0 | PnL: 0.0000 SOL | Positions: 0[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:16:19.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 29
+[2025-09-18 20:16:19.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.03484297267027778hours (threshold: 0hours)[39m
+[2025-09-18 20:16:19.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:16:29.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 24
+[2025-09-18 20:16:29.480 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.03762074063472222hours (threshold: 0hours)[39m
+[2025-09-18 20:16:29.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+📊 RPC Metrics: 4/4 healthy, 137ms avg latency, 0 req/s
+📊 RPC Metrics: 4/4 healthy, 153ms avg latency, 0 req/s
+[2025-09-18 20:16:39.469 +0000] [32mINFO[39m: [36m[PERFORMANCE_METRIC] [39m
+    code: "PERFORMANCE_METRIC"
+    eventsPerSecond: 0
+    queueDepth: 0
+    uptime: 10000
+    memoryUsage: 27
+[2025-09-18 20:16:39.479 +0000] [31mERROR[39m: [36m[] 🚨 CRITICAL ALERT: Critical: uptime is 0.040398533971666664hours (threshold: 0hours)[39m
+[2025-09-18 20:16:39.485 +0000] [31mERROR[39m: [36m[] Error getting recent token mints:[39m
+[2025-09-18 20:16:40.452 +0000] [32mINFO[39m: [36m[] 📴 Received SIGTERM, shutting down gracefully...[39m
+[2025-09-18 20:16:40.452 +0000] [32mINFO[39m: [36m[] 🛑 Token detector stopped[39m
+[2025-09-18 20:16:40.453 +0000] [32mINFO[39m: [36m[BOT_STOPPED] [39m
+    code: "BOT_STOPPED"
+    uptime: 150968
+[2025-09-18 20:16:40.453 +0000] [32mINFO[39m: [36m[] API server stopped[39m
+[2025-09-18 20:16:40.453 +0000] [32mINFO[39m: [36m[] ✅ Shutdown completed successfully[39m
