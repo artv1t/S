@@ -3,7 +3,7 @@
 Polymarket Sports Live Listener - Module 1A
 
 A minimal, focused LIVE-data listener for Polymarket Sports WebSocket.
-Filters events by: Soccer, Basketball, Hockey, Esports only.
+Filters events by: Soccer, Basketball, Hockey, Esports, Tennis (ATP/WTA) only.
 
 NO trading, NO odds, NO orderbooks - just LIVE event data.
 """
@@ -26,13 +26,13 @@ ALLOWED_SPORT_TYPES: Set[str] = {
     "basketball",
     "hockey", "ice_hockey",
     "esports", "esport",
+    "tennis",
 }
 
 EXCLUDED_LEAGUES: Set[str] = {
     "nfl", "cfb", "ncaaf",
     "golf", "pga",
     "cricket", "ipl",
-    "tennis", "atp", "wta",
     "ufc", "mma",
     "f1", "formula1", "formula_1",
     "chess",
@@ -43,6 +43,7 @@ EXCLUDED_LEAGUES: Set[str] = {
 BASKETBALL_LEAGUES: Set[str] = {"nba", "euroleague", "ncaab", "fiba", "wnba", "acb"}
 HOCKEY_LEAGUES: Set[str] = {"nhl", "khl", "iihf", "shl"}
 ESPORTS_LEAGUES: Set[str] = {"cs2", "csgo", "dota2", "dota", "lol", "valorant", "rl"}
+TENNIS_LEAGUES: Set[str] = {"atp", "wta"}
 
 HEARTBEAT_INTERVAL = 20
 
@@ -119,6 +120,8 @@ def classify_sport(data: dict) -> Optional[str]:
         return "hockey"
     if sport_type in ("esports", "esport"):
         return "esports"
+    if sport_type == "tennis":
+        return "tennis"
     
     if league_abbr in BASKETBALL_LEAGUES:
         return "basketball"
@@ -126,6 +129,8 @@ def classify_sport(data: dict) -> Optional[str]:
         return "hockey"
     if league_abbr in ESPORTS_LEAGUES:
         return "esports"
+    if league_abbr in TENNIS_LEAGUES:
+        return "tennis"
     
     return None
 
@@ -309,7 +314,7 @@ async def main():
     
     logger.info("=" * 60)
     logger.info("Polymarket Sports Live Listener - Module 1A")
-    logger.info("Filtering: Soccer, Basketball, Hockey, Esports")
+    logger.info("Filtering: Soccer, Basketball, Hockey, Esports, Tennis (ATP/WTA)")
     logger.info("Endpoint: %s", WS_ENDPOINT)
     logger.info("=" * 60)
     
