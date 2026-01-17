@@ -19,9 +19,10 @@ import signal
 import asyncio
 import logging
 import argparse
+import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,9 +35,77 @@ BASE_DIR = Path(__file__).parent
 OUT_DIR = BASE_DIR / "out"
 LOGS_DIR = BASE_DIR / "logs"
 
-KALSHI_API_KEY_ID = os.environ.get("KALSHI_API_KEY_ID", "177e5c48-edfa-4fa4-bfd2-43bee1ef886f")
-KALSHI_PRIVATE_KEY_PEM = os.environ.get("KALSHI_PRIVATE_KEY_PEM", "")
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-f1b0fc04db5a4beca73ed8b0803210cf")
+# HARDCODED API KEYS (user requested - read-only accounts, no money)
+KALSHI_API_KEY_ID = "177e5c48-edfa-4fa4-bfd2-43bee1ef886f"
+KALSHI_PRIVATE_KEY_PEM = """-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA50JaZjtsJHnf6APoKQ3lXO8FVtNb7az7wCpw345zrDe8nPmm
+TPA1hzt1jFpwOEGwFZ6yHJFGfj/WitxSx1RGzthCmJQsWktAmDo9IieyvKNPJ6Cg
+Y/ci4tr352jYrTEY9b3ork4UQcqTyabxZh870qiNiG0DSNic7ovAHW0GB8uQ0ceg
++D2i+Yl0LUCKcSTEKrCYjOryDohjPs8SLhVij/RavrJSPr9asNPJvqArgk7fqJJB
+8pQGKCIh54wvGasAfNIbHeV4TUvyRaSYaGFuE6rYHG6x72B+wh71d15cSm3gJghI
+gXFOmbdzawTQZfrWh+wNP0b7mnlEw6OFosahaQIDAQABAoIBAAyJsEc/5D9vhJxK
+fu8f394rnstb6u1ePilnW6aBLYQKIw2TKukbslk+N+OnwRMJu6tWZuNt3GeqnB37
+7zh7mRmsh6LIUMXF8+705FzaUGJSC8/zEVMOImvwcXWQPYQZR/hFxyxREx/UhPHv
+PUH7QkXr6b16ZI3R4aM8vCoUP7oTHMixp3VPuT+N+VpiofuDgOdMBh/parfVWOVk
+dXFcG5I5JPN9UqD4Ob46zsLi+rEUJXluHC1JRVvxsFAoHqpg3rVbqW26Ho44tqcr
+VOlwctuKYx6N86HTKgr6ldi7DDk2rz1lwSyjZqIfMhvUMNDXTL6Y/Ua8BRJhEQ64
+2II9BZECgYEA9hhan8GebyKSTpNbAvc+TsMq+A54T0P3ptofbgxW+n4xrMik4wM4
+uj7pwrxUUgld6133OnS7MmyP/9ZwMFZGhuWKgrygpSDiskvTX5r7W9HrpedHdGHu
+hmqR12W+vWTNd1asvqOtkcGTQW+y/IEY8jFUJv0d+nqYoh/mPiL82fkCgYEA8JEi
+/8r56IBNGWq9y2h3HxhBSOw2OzPTGo/66t7HhEejRYHROpRYmVVVf51K/P9eqddN
+fNAxq91uN0vlulWormwxzoPUva2hTePKEK2ryym6Uj8puw92t4OuYXmkqt2HFmOE
+rGmf8hZJhKW/o2uv7brlZcKvB6uWyhVy9j1UXvECgYAGZB+GYprgu/8ct0r3yr/9
+f6gQBSAuvs8hsCx8ySlBHCHiINvXYXAJtjSP8CAoeUHNKQWQqRNrfdJHjKQhPTxb
+qH5uYsOxRiddBgcZRoccnVkHV/hNF3YAW6gp9eR8Oq/zV3bpBIsva92NJ394e0nQ
+kGNlF9G9fY2VOErcdkAm0QKBgQCi+rEreug0jDevsJFE7VFGz7frH5zeHw42QLVN
+ygCBrcb/oCOP/FDKEPYLrxTOsnP/vM3ScXo1ZZ7194V75+yPvt0/fDD1EFzn2Btd
+kUuCKJMChahQAvn6+kt53l+hItQSZvnLlQO3j0HfjCt5G8vk02n2tx69o5JU9pMc
+IBC5AQKBgQDR5Rkp+a7ZfIL6LhPH4tljbYr8Oqnpbyj1ekxPF1LkYWZzvfPXpf+L
+fZd1sRSqZsE6MMMgUPUQ8+ZDmymRG80JnnwpgHdk4rt2KfSLAal2FB852rX0lR/Y
+VpA+eCkRB2RAUsq3pbc7Bdt+qaV5sWwkoT+ks4t2q94gKia1ThpB8Q==
+-----END RSA PRIVATE KEY-----"""
+DEEPSEEK_API_KEY = "sk-f1b0fc04db5a4beca73ed8b0803210cf"
+
+
+def parse_teams_from_title(title: str) -> tuple:
+    """Extract team names from Kalshi market title like 'Washington St. at San Francisco Winner?'."""
+    patterns = [
+        r"^(.+?)\s+vs\.?\s+(.+?)(?:\s+Winner\??|\s*\?|\s*$)",
+        r"^(.+?)\s+v\s+(.+?)(?:\s+Winner\??|\s*\?|\s*$)",
+        r"^(.+?)\s+at\s+(.+?)(?:\s+Winner\??|\s*\?|\s*$)",
+        r"^(.+?)\s+-\s+(.+?)(?:\s+Winner\??|\s*\?|\s*$)",
+        r"^(.+?)\s+@\s+(.+?)(?:\s+Winner\??|\s*\?|\s*$)",
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, title, re.IGNORECASE)
+        if match:
+            team_a = match.group(1).strip()
+            team_b = match.group(2).strip()
+            for suffix in [" Winner", " to Win", " Win", "?"]:
+                team_a = team_a.replace(suffix, "").strip()
+                team_b = team_b.replace(suffix, "").strip()
+            return team_a, team_b
+    
+    return "", ""
+
+
+def classify_kalshi_sport(category: str, sub_title: str, title: str) -> Optional[str]:
+    """Classify sport from Kalshi event metadata."""
+    combined = f"{category} {sub_title} {title}".lower()
+    
+    if "basketball" in combined or "nba" in combined or "ncaa" in combined or "cbb" in combined:
+        return "basketball"
+    if "hockey" in combined or "nhl" in combined:
+        return "hockey"
+    if "soccer" in combined:
+        return "soccer"
+    if "tennis" in combined or "atp" in combined or "wta" in combined:
+        return "tennis"
+    if "esports" in combined or "valorant" in combined or "counter" in combined or "cs2" in combined:
+        return "esports"
+    
+    return None
 
 
 class SystemOrchestrator:
@@ -51,9 +120,13 @@ class SystemOrchestrator:
         self.kalshi_listener = None
         self.event_matcher = None
         
+        # Kalshi market metadata cache: ticker -> {sport, team_a, team_b, title, event_ticker}
+        self.kalshi_market_cache: Dict[str, Dict[str, Any]] = {}
+        
         self.stats = {
             "polymarket_events": 0,
             "kalshi_events": 0,
+            "kalshi_markets_discovered": 0,
             "matches_found": 0,
             "errors": 0,
         }
@@ -170,6 +243,80 @@ class SystemOrchestrator:
             logger.error("Error processing Polymarket event: %s", e)
             self.stats["errors"] += 1
     
+    async def discover_kalshi_markets(self, session, private_key, create_signature):
+        """Discover all sports markets from Kalshi REST API and cache metadata."""
+        import time
+        
+        API_BASE = "https://api.elections.kalshi.com"
+        markets_path = "/trade-api/v2/markets"
+        
+        # Sports series to query - these contain game winner markets
+        sports_series = [
+            ("KXNCAAMBGAME", "basketball"),   # Men's College Basketball Game
+            ("KXNCAAWBGAME", "basketball"),   # Women's College Basketball Game
+            ("KXNBAGAME", "basketball"),      # NBA Game
+            ("KXNHLGAME", "hockey"),          # NHL Game
+            ("KXATPGAME", "tennis"),          # ATP Tennis
+            ("KXWTAGAME", "tennis"),          # WTA Tennis
+            ("KXSOCCERGAME", "soccer"),       # Soccer Game (if exists)
+            ("KXMLSGAME", "soccer"),          # MLS Game
+            ("KXUEFAGAME", "soccer"),         # UEFA Game
+            ("KXVALORANTGAME", "esports"),    # Valorant Game
+        ]
+        
+        try:
+            for series_ticker, sport in sports_series:
+                timestamp = str(int(time.time() * 1000))
+                signature = create_signature(private_key, timestamp, "GET", markets_path)
+                
+                headers = {
+                    "KALSHI-ACCESS-KEY": KALSHI_API_KEY_ID,
+                    "KALSHI-ACCESS-SIGNATURE": signature,
+                    "KALSHI-ACCESS-TIMESTAMP": timestamp,
+                }
+                
+                params = {"limit": 200, "status": "open", "series_ticker": series_ticker}
+                async with session.get(f"{API_BASE}{markets_path}", headers=headers, params=params) as resp:
+                    if resp.status != 200:
+                        continue
+                    
+                    data = await resp.json()
+                    markets = data.get("markets", [])
+                    
+                    if not markets:
+                        continue
+                    
+                    logger.info("Found %d markets in series %s", len(markets), series_ticker)
+                    
+                    for market in markets:
+                        ticker = market.get("ticker", "")
+                        title = market.get("title", "")
+                        event_ticker = market.get("event_ticker", "")
+                        
+                        # Parse team names from title like "Washington St. at San Francisco Winner?"
+                        team_a, team_b = parse_teams_from_title(title)
+                        
+                        self.kalshi_market_cache[ticker] = {
+                            "sport": sport,
+                            "team_a": team_a,
+                            "team_b": team_b,
+                            "title": title,
+                            "event_ticker": event_ticker,
+                            "series_ticker": series_ticker,
+                        }
+                        self.stats["kalshi_markets_discovered"] += 1
+            
+            logger.info("Cached %d sports markets from Kalshi", self.stats["kalshi_markets_discovered"])
+            
+            # Log some examples with team names
+            examples = [(t, i) for t, i in self.kalshi_market_cache.items() if i["team_a"] and i["team_b"]][:5]
+            for ticker, info in examples:
+                logger.info("  Example: %s | %s vs %s", 
+                           info["sport"].upper(), info["team_a"], info["team_b"])
+                
+        except Exception as e:
+            logger.error("Error discovering Kalshi markets: %s", e)
+    
     async def run_kalshi_listener(self):
         """Run Kalshi listener and feed events to matcher."""
         import aiohttp
@@ -183,13 +330,11 @@ class SystemOrchestrator:
         WS_URL = "wss://api.elections.kalshi.com/trade-api/ws/v2"
         
         def load_private_key():
-            if KALSHI_PRIVATE_KEY_PEM:
-                return serialization.load_pem_private_key(
-                    KALSHI_PRIVATE_KEY_PEM.encode(),
-                    password=None,
-                    backend=default_backend(),
-                )
-            return None
+            return serialization.load_pem_private_key(
+                KALSHI_PRIVATE_KEY_PEM.encode(),
+                password=None,
+                backend=default_backend(),
+            )
         
         def create_signature(private_key, timestamp: str, method: str, path: str) -> str:
             message = f"{timestamp}{method}{path}".encode()
@@ -204,13 +349,16 @@ class SystemOrchestrator:
             return base64.b64encode(signature).decode()
         
         private_key = load_private_key()
-        if not private_key:
-            logger.error("Kalshi private key not configured")
-            return
         
         while self.running:
             try:
                 async with aiohttp.ClientSession() as session:
+                    # First, discover all sports markets and cache metadata
+                    if not self.kalshi_market_cache:
+                        logger.info("Discovering Kalshi sports markets via REST API...")
+                        await self.discover_kalshi_markets(session, private_key, create_signature)
+                    
+                    # Connect to WebSocket
                     ws_path = "/trade-api/ws/v2"
                     timestamp = str(int(time.time() * 1000))
                     signature = create_signature(private_key, timestamp, "GET", ws_path)
@@ -264,38 +412,59 @@ class SystemOrchestrator:
             msg = data.get("msg", {})
             ticker = msg.get("market_ticker", "")
             
-            sport = None
-            ticker_upper = ticker.upper()
-            if "NBA" in ticker_upper or "NBAGAME" in ticker_upper:
-                sport = "basketball"
-            elif "NHL" in ticker_upper or "NHLGAME" in ticker_upper:
-                sport = "hockey"
-            elif "NFL" in ticker_upper or "NFLGAME" in ticker_upper:
-                sport = "football"
-            elif "MLB" in ticker_upper or "MLBGAME" in ticker_upper:
-                sport = "baseball"
-            elif "TENNIS" in ticker_upper or "ATP" in ticker_upper or "WTA" in ticker_upper or "TABLETENNIS" in ticker_upper:
-                sport = "tennis"
-            elif "SOCCER" in ticker_upper or "FOOTBALL" in ticker_upper:
-                sport = "soccer"
+            # Look up market metadata from cache (populated by REST discovery)
+            market_info = self.kalshi_market_cache.get(ticker)
+            
+            if market_info:
+                # Use cached metadata with team names
+                sport = market_info.get("sport")
+                team_a = market_info.get("team_a", "")
+                team_b = market_info.get("team_b", "")
+                title = market_info.get("title", "")
+            else:
+                # Fallback: try to classify from ticker prefix
+                ticker_upper = ticker.upper()
+                sport = None
+                if "NBA" in ticker_upper or "CBB" in ticker_upper or "NCAA" in ticker_upper:
+                    sport = "basketball"
+                elif "NHL" in ticker_upper:
+                    sport = "hockey"
+                elif "SOCCER" in ticker_upper:
+                    sport = "soccer"
+                elif "TENNIS" in ticker_upper or "ATP" in ticker_upper or "WTA" in ticker_upper:
+                    sport = "tennis"
+                
+                if not sport:
+                    return
+                
+                team_a = ""
+                team_b = ""
+                title = ticker
             
             if not sport:
                 return
             
-            allowed_sports = {"basketball", "hockey", "tennis", "soccer", "esports", "football", "baseball"}
+            allowed_sports = {"basketball", "hockey", "tennis", "soccer", "esports"}
             if sport not in allowed_sports:
                 return
             
             self.stats["kalshi_events"] += 1
             
-            if self.stats["kalshi_events"] % 100 == 1:
-                logger.info("KALSHI | %s | ticker=%s", sport.upper(), ticker[:50])
+            # Log events with team names more frequently
+            if team_a and team_b:
+                logger.info("KALSHI | %s | %s vs %s | LIVE", sport.upper(), team_a, team_b)
+            elif self.stats["kalshi_events"] % 50 == 1:
+                logger.info("KALSHI | %s | ticker=%s", sport.upper(), ticker[:40])
             
             if self.event_matcher:
+                # Build enriched kalshi_data with team names from cache
                 kalshi_data = {
                     "market_ticker": ticker,
-                    "title": ticker,
-                    "event_ticker": sport.upper(),
+                    "title": title,
+                    "event_ticker": market_info.get("event_ticker", "") if market_info else "",
+                    "sport": sport,
+                    "team_a": team_a,
+                    "team_b": team_b,
                     **msg,
                 }
                 result = await self.event_matcher.process_kalshi_event(kalshi_data)

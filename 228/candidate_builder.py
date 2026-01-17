@@ -324,25 +324,36 @@ def create_live_event_from_kalshi(raw_data: dict) -> Optional[LiveEvent]:
         ticker = raw_data.get("market_ticker", "") or raw_data.get("ticker", "")
         title = raw_data.get("title", "")
         
-        sport = "unknown"
-        if "NBA" in ticker or "NBA" in title.upper():
-            sport = "basketball"
-        elif "NFL" in ticker or "NFL" in title.upper():
-            sport = "football"
-        elif "NHL" in ticker or "NHL" in title.upper():
-            sport = "hockey"
-        elif "MLB" in ticker or "MLB" in title.upper():
-            sport = "baseball"
-        elif "TENNIS" in ticker or "ATP" in ticker or "WTA" in ticker:
-            sport = "tennis"
-        elif "SOCCER" in ticker or "FOOTBALL" in ticker:
-            sport = "soccer"
-        elif any(x in ticker.upper() for x in ["ESPORT", "LOL", "DOTA", "CSGO", "VALORANT"]):
-            sport = "esports"
+        # Use pre-classified sport if available (from REST discovery)
+        sport = raw_data.get("sport", "")
         
-        teams = title.split(" vs ") if " vs " in title else title.split(" at ")
-        team_a = teams[0].strip() if len(teams) > 0 else ""
-        team_b = teams[1].strip() if len(teams) > 1 else ""
+        # Fallback: classify from ticker/title
+        if not sport:
+            sport = "unknown"
+            if "NBA" in ticker or "NBA" in title.upper() or "CBB" in ticker or "NCAA" in ticker:
+                sport = "basketball"
+            elif "NFL" in ticker or "NFL" in title.upper():
+                sport = "football"
+            elif "NHL" in ticker or "NHL" in title.upper():
+                sport = "hockey"
+            elif "MLB" in ticker or "MLB" in title.upper():
+                sport = "baseball"
+            elif "TENNIS" in ticker or "ATP" in ticker or "WTA" in ticker:
+                sport = "tennis"
+            elif "SOCCER" in ticker or "FOOTBALL" in ticker:
+                sport = "soccer"
+            elif any(x in ticker.upper() for x in ["ESPORT", "LOL", "DOTA", "CSGO", "VALORANT"]):
+                sport = "esports"
+        
+        # Use pre-parsed team names if available (from REST discovery)
+        team_a = raw_data.get("team_a", "")
+        team_b = raw_data.get("team_b", "")
+        
+        # Fallback: parse from title
+        if not team_a or not team_b:
+            teams = title.split(" vs ") if " vs " in title else title.split(" at ")
+            team_a = teams[0].strip() if len(teams) > 0 else ""
+            team_b = teams[1].strip() if len(teams) > 1 else ""
         
         return LiveEvent(
             source="kalshi",
@@ -364,13 +375,39 @@ def create_live_event_from_polymarket(raw_data: dict) -> Optional[LiveEvent]:
     try:
         event_state = raw_data.get("eventState", {})
         
+        # Get sport type - handle various formats
         sport = event_state.get("type", "").lower()
         if not sport:
             sport = raw_data.get("sport", "unknown")
         
+        # Normalize sport names
+        if sport in ("college-basketball", "ncaab", "cbb"):
+            sport = "basketball"
+        elif sport in ("ice_hockey", "ice-hockey"):
+            sport = "hockey"
+        
+        # Get team names - try multiple formats
+        team_a = ""
+        team_b = ""
+        
+        # Format 1: competitors array
         competitors = event_state.get("competitors", [])
-        team_a = competitors[0].get("name", "") if len(competitors) > 0 else ""
-        team_b = competitors[1].get("name", "") if len(competitors) > 1 else ""
+        if competitors:
+            team_a = competitors[0].get("name", "") if len(competitors) > 0 else ""
+            team_b = competitors[1].get("name", "") if len(competitors) > 1 else ""
+        
+        # Format 2: homeTeam/awayTeam objects
+        if not team_a or not team_b:
+            home_team = raw_data.get("homeTeam", {})
+            away_team = raw_data.get("awayTeam", {})
+            if isinstance(home_team, dict):
+                team_a = home_team.get("name", "") or team_a
+            elif isinstance(home_team, str):
+                team_a = home_team or team_a
+            if isinstance(away_team, dict):
+                team_b = away_team.get("name", "") or team_b
+            elif isinstance(away_team, str):
+                team_b = away_team or team_b
         
         score = None
         if competitors:
@@ -381,14 +418,17 @@ def create_live_event_from_polymarket(raw_data: dict) -> Optional[LiveEvent]:
         period = event_state.get("period", "")
         game_time = event_state.get("gameClock", "")
         
+        # Determine live status
+        is_live = raw_data.get("live", False) or raw_data.get("status", "").lower() == "inprogress"
+        
         return LiveEvent(
             source="polymarket",
             event_id=raw_data.get("gameId", str(raw_data.get("id", ""))),
             sport=sport,
-            league=event_state.get("league", raw_data.get("league", "")),
+            league=event_state.get("league", raw_data.get("leagueAbbreviation", raw_data.get("league", ""))),
             team_a=team_a,
             team_b=team_b,
-            status="live" if raw_data.get("live") else "scheduled",
+            status="live" if is_live else "scheduled",
             score=score,
             period=period,
             game_time=game_time,
