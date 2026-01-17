@@ -56,6 +56,10 @@ class MatchedEvent:
     team_b: str
     live_state: str
     
+    # Market identifiers for verification
+    kalshi_ticker: str = ""
+    polymarket_slug: str = ""
+    
     polymarket_quotes: Dict[str, MarketQuote] = field(default_factory=dict)
     kalshi_quotes: Dict[str, MarketQuote] = field(default_factory=dict)
     
@@ -95,8 +99,14 @@ class ArbSignal:
     
     buy_polymarket_outcome: str
     buy_polymarket_price: float
+    buy_polymarket_size: float
     buy_kalshi_outcome: str
     buy_kalshi_price: float
+    buy_kalshi_size: float
+    
+    # Market identifiers for manual verification
+    kalshi_ticker: str
+    polymarket_slug: str
     
     target_total: float
     stake_polymarket: float
@@ -111,7 +121,7 @@ class ArbSignal:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     def to_signal_string(self) -> str:
-        """Format as readable signal output."""
+        """Format as readable signal output with market IDs for verification."""
         return f"""
 ================================================================================
                            ARB_SIGNAL DETECTED
@@ -120,9 +130,13 @@ event: {self.event_name}
 sport: {self.sport}
 live_state: {self.live_state}
 
+MARKET IDs (for manual verification):
+  Kalshi ticker: {self.kalshi_ticker}
+  Polymarket slug: {self.polymarket_slug}
+
 BUY:
-  Polymarket: {self.buy_polymarket_outcome} @ {self.buy_polymarket_price:.4f}
-  Kalshi: {self.buy_kalshi_outcome} @ {self.buy_kalshi_price:.4f}
+  Polymarket: {self.buy_polymarket_outcome} @ {self.buy_polymarket_price:.4f} (size: {self.buy_polymarket_size:.0f})
+  Kalshi: {self.buy_kalshi_outcome} @ {self.buy_kalshi_price:.4f} (size: {self.buy_kalshi_size:.0f})
 
 target_total: ${self.target_total:.2f}
 stakes:
@@ -151,7 +165,7 @@ class ArbitrageEngine:
     KALSHI_TAKER_FEE = 0.01
     EXECUTION_BUFFER = 0.01
     
-    MIN_NET_ROI = 0.05  # 5% minimum ROI for production
+    MIN_NET_ROI = 0.05  # 5% minimum net ROI for production
     MAX_QUOTE_AGE = 10.0
     
     def __init__(self, target_total: float = 1.0):
@@ -217,7 +231,8 @@ class ArbitrageEngine:
     
     def update_polymarket_quote(self, event_id: str, outcome: str, 
                                  ask_price: float, ask_size: float = 100,
-                                 bid_price: float = 0, bid_size: float = 0):
+                                 bid_price: float = 0, bid_size: float = 0,
+                                 market_slug: str = ""):
         """Update Polymarket quote for an event outcome."""
         if event_id not in self.matched_events:
             return
@@ -235,12 +250,17 @@ class ArbitrageEngine:
         event.last_update = datetime.now(timezone.utc)
         self.stats["quotes_received"] += 1
         
+        # Update market slug for verification
+        if market_slug and not event.polymarket_slug:
+            event.polymarket_slug = market_slug
+        
         if self.stats["quotes_received"] % 100 == 1:
             print(f"[ARB_ENGINE] QUOTE | Polymarket | {event_id} | {outcome} @ {ask_price:.4f}")
     
     def update_kalshi_quote(self, event_id: str, outcome: str,
                             ask_price: float, ask_size: float = 100,
-                            bid_price: float = 0, bid_size: float = 0):
+                            bid_price: float = 0, bid_size: float = 0,
+                            ticker: str = ""):
         """Update Kalshi quote for an event outcome."""
         if event_id not in self.matched_events:
             return
@@ -257,6 +277,10 @@ class ArbitrageEngine:
         )
         event.last_update = datetime.now(timezone.utc)
         self.stats["quotes_received"] += 1
+        
+        # Update ticker for verification
+        if ticker and not event.kalshi_ticker:
+            event.kalshi_ticker = ticker
         
         if self.stats["quotes_received"] % 100 == 1:
             print(f"[ARB_ENGINE] QUOTE | Kalshi | {event_id} | {outcome} @ {ask_price:.4f}")
@@ -391,15 +415,19 @@ class ArbitrageEngine:
         if "polymarket_A" in strategy:
             poly_outcome = quote_a.outcome
             poly_price = price_a
+            poly_size = quote_a.ask_size
             kalshi_outcome = quote_b.outcome
             kalshi_price = price_b
+            kalshi_size = quote_b.ask_size
             stake_poly = stake_a
             stake_kalshi = stake_b
         else:
             poly_outcome = quote_b.outcome
             poly_price = price_b
+            poly_size = quote_b.ask_size
             kalshi_outcome = quote_a.outcome
             kalshi_price = price_a
+            kalshi_size = quote_a.ask_size
             stake_poly = stake_b
             stake_kalshi = stake_a
         
@@ -410,8 +438,12 @@ class ArbitrageEngine:
             live_state=event.live_state,
             buy_polymarket_outcome=poly_outcome,
             buy_polymarket_price=poly_price,
+            buy_polymarket_size=poly_size,
             buy_kalshi_outcome=kalshi_outcome,
             buy_kalshi_price=kalshi_price,
+            buy_kalshi_size=kalshi_size,
+            kalshi_ticker=event.kalshi_ticker,
+            polymarket_slug=event.polymarket_slug,
             target_total=self.target_total,
             stake_polymarket=stake_poly,
             stake_kalshi=stake_kalshi,

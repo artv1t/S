@@ -558,9 +558,9 @@ class SystemOrchestrator:
                 no_ask = (100 - msg.get("yes_bid", 0)) / 100.0 if msg.get("yes_bid") else 0
                 
                 if yes_ask > 0 and yes_ask < 1:
-                    self.arb_engine.update_kalshi_quote(event_id, team_a or "yes", yes_ask)
+                    self.arb_engine.update_kalshi_quote(event_id, team_a or "yes", yes_ask, ticker=ticker)
                 if no_ask > 0 and no_ask < 1:
-                    self.arb_engine.update_kalshi_quote(event_id, team_b or "no", no_ask)
+                    self.arb_engine.update_kalshi_quote(event_id, team_b or "no", no_ask, ticker=ticker)
                 
                 # Fetch REAL Polymarket prices from CLOB API
                 # Find matching Polymarket market by team names
@@ -574,7 +574,10 @@ class SystemOrchestrator:
                         if poly_prices:
                             for outcome, price in poly_prices.items():
                                 if price > 0 and price < 1:
-                                    self.arb_engine.update_polymarket_quote(event_id, outcome, price)
+                                    self.arb_engine.update_polymarket_quote(
+                                        event_id, outcome, price, 
+                                        market_slug=poly_market.event_title
+                                    )
                                     logger.info("POLY_CLOB | %s | %s @ %.4f (from %s)", event_id, outcome, price, poly_market.event_title)
                         else:
                             logger.debug("No CLOB prices for %s", poly_market.event_title)
