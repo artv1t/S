@@ -151,7 +151,7 @@ class ArbitrageEngine:
     KALSHI_TAKER_FEE = 0.01
     EXECUTION_BUFFER = 0.01
     
-    MIN_NET_ROI = 0.05  # 5% minimum net ROI for signal emission
+    MIN_NET_ROI = 0.05  # 5% minimum ROI for production
     MAX_QUOTE_AGE = 10.0
     
     def __init__(self, target_total: float = 1.0):

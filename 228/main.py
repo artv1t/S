@@ -121,6 +121,7 @@ class SystemOrchestrator:
         self.kalshi_listener = None
         self.event_matcher = None
         self.arb_engine = None
+        self.poly_price_fetcher = None  # Polymarket CLOB price fetcher
         
         # Kalshi market metadata cache: ticker -> {sport, team_a, team_b, title, event_ticker}
         self.kalshi_market_cache: Dict[str, Dict[str, Any]] = {}
@@ -144,9 +145,17 @@ class SystemOrchestrator:
         
         from event_matcher import EventMatcher
         from arbitrage_engine import ArbitrageEngine
+        from polymarket_prices import PolymarketPriceFetcher
         
         self.event_matcher = EventMatcher(deepseek_api_key=DEEPSEEK_API_KEY)
         self.arb_engine = ArbitrageEngine(target_total=self.target_total)
+        self.poly_price_fetcher = PolymarketPriceFetcher()
+        await self.poly_price_fetcher.start()
+        
+        # Discover Polymarket sports markets for price fetching
+        logger.info("Discovering Polymarket sports markets...")
+        poly_markets = await self.poly_price_fetcher.discover_sports_markets()
+        logger.info("Found %d Polymarket moneyline markets", len(poly_markets))
         
         logger.info("System initialized")
         logger.info("  Kalshi API Key: %s...", KALSHI_API_KEY_ID[:8] if KALSHI_API_KEY_ID else "NOT SET")
@@ -553,17 +562,24 @@ class SystemOrchestrator:
                 if no_ask > 0 and no_ask < 1:
                     self.arb_engine.update_kalshi_quote(event_id, team_b or "no", no_ask)
                 
-                # IMPORTANT: Since Polymarket WebSocket doesn't provide prices (only scores),
-                # we simulate Polymarket prices based on Kalshi's prices with slight variation
-                # In real arbitrage, we'd get these from Polymarket's CLOB API
-                # This demonstrates the arb detection logic with real Kalshi prices
-                if yes_ask > 0 and yes_ask < 1 and no_ask > 0 and no_ask < 1:
-                    # Simulate Polymarket having slightly different prices (market inefficiency)
-                    # For smoke test: create a small arb opportunity by adjusting prices
-                    poly_yes = yes_ask * 0.92  # Slightly lower ask on Polymarket
-                    poly_no = no_ask * 0.92
-                    self.arb_engine.update_polymarket_quote(event_id, team_a or "yes", poly_yes)
-                    self.arb_engine.update_polymarket_quote(event_id, team_b or "no", poly_no)
+                # Fetch REAL Polymarket prices from CLOB API
+                # Find matching Polymarket market by team names
+                if self.poly_price_fetcher and (team_a or team_b):
+                    poly_market = self.poly_price_fetcher.find_market_by_teams(
+                        team_a or "", team_b or ""
+                    )
+                    if poly_market:
+                        # Refresh real-time prices from CLOB API
+                        poly_prices = await self.poly_price_fetcher.refresh_prices(poly_market.event_title)
+                        if poly_prices:
+                            for outcome, price in poly_prices.items():
+                                if price > 0 and price < 1:
+                                    self.arb_engine.update_polymarket_quote(event_id, outcome, price)
+                                    logger.info("POLY_CLOB | %s | %s @ %.4f (from %s)", event_id, outcome, price, poly_market.event_title)
+                        else:
+                            logger.debug("No CLOB prices for %s", poly_market.event_title)
+                    else:
+                        logger.debug("No Polymarket market found for %s vs %s", team_a, team_b)
                     
         except Exception as e:
             logger.error("Error processing Kalshi message: %s", e)
@@ -640,6 +656,8 @@ class SystemOrchestrator:
                 await self.event_matcher.close()
             if self.arb_engine:
                 self.arb_engine.stop()
+            if self.poly_price_fetcher:
+                await self.poly_price_fetcher.close()
         
         self.print_stats()
     
